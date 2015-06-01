@@ -1,5 +1,6 @@
 package ch.claude_martin.function;
 
+import static java.util.Arrays.asList;
 import static java.util.Objects.requireNonNull;
 
 import java.util.*;
@@ -7,10 +8,14 @@ import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.*;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
+import java.util.stream.*;
+import java.util.stream.Collector.Characteristics;
 
+/**
+ * Utility methods for functions.
+ * 
+ * @author Claude Martin
+ */
 public final class Functions {
 
   public static <T, R> Consumer<T> toVoid(final Function<T, R> f) {
@@ -21,7 +26,7 @@ public final class Functions {
     return f::apply;
   }
 
-  public static <T, R> Function<T, R> toConstant(final Supplier<R> supplier) {
+  public static <T, R> Fn<T, R> toConstant(final Supplier<R> supplier) {
     return x -> supplier.get();
   }
 
@@ -37,19 +42,19 @@ public final class Functions {
     return Pair.of(k, v);
   }
 
-  public static <T, U, R> Function<T, Function<U, R>> curry(final Function<Entry<T, U>, R> f) {
+  public static <T, U, R> Fn<T, Fn<U, R>> curry(final Function<Entry<T, U>, R> f) {
     return t -> u -> f.apply(toPair(t, u));
   }
 
-  public static <T, U, R> Function<T, Function<U, R>> curry(final BiFunction<T, U, R> f) {
+  public static <T, U, R> Fn<T, Fn<U, R>> curry(final BiFunction<T, U, R> f) {
     return t -> u -> f.apply(t, u);
   }
 
-  public static <T, U, R> Function<Entry<T, U>, R> uncurry(final Function<T, Function<U, R>> f) {
+  public static <T, U, R> Fn<Entry<T, U>, R> uncurry(final Function<T, Function<U, R>> f) {
     return e -> f.apply(e.getKey()).apply(e.getValue());
   }
 
-  public static <T, U, R> Function<Entry<T, U>, R> uncurry2(final BiFunction<T, U, R> f) {
+  public static <T, U, R> Fn<Entry<T, U>, R> uncurry2(final BiFunction<T, U, R> f) {
     return e -> f.apply(e.getKey(), e.getValue());
   }
 
@@ -75,20 +80,19 @@ public final class Functions {
     return () -> f.apply(first);
   }
 
-  public static <T, U, R> Function<U, R> setFirst(final BiFunction<T, U, R> f, final T first) {
+  public static <T, U, R> Fn<U, R> setFirst(final BiFunction<T, U, R> f, final T first) {
     return snd -> f.apply(first, snd);
   }
 
-  public static <T, U, R> Function<T, R> setSecond(final BiFunction<T, U, R> f, final U second) {
+  public static <T, U, R> Fn<T, R> setSecond(final BiFunction<T, U, R> f, final U second) {
     return first -> f.apply(first, second);
   }
 
-  public static <T, U, R> Function<T, R> setSecond(final Function<T, Function<U, R>> f,
-      final U second) {
+  public static <T, U, R> Fn<T, R> setSecond(final Function<T, Function<U, R>> f, final U second) {
     return first -> f.apply(first).apply(second);
   }
 
-  public static <T, U, V, R> Function<T, Function<U, R>> setThird(
+  public static <T, U, V, R> Fn<T, Fn<U, R>> setThird(
       final Function<T, Function<U, Function<V, R>>> f, final V third) {
     return first -> second -> f.apply(first).apply(second).apply(third);
   }
@@ -144,23 +148,22 @@ public final class Functions {
     };
   }
 
-  public static <T, R> Function<T, R> cached(final Function<T, R> f) {
+  public static <T, R> Fn<T, R> cached(final Function<T, R> f) {
     return cached(f, ConcurrentHashMap::new);
   }
 
-  public static <T, R> Function<T, R> cached(final Function<T, R> f,
-      final Supplier<Map<T, R>> supplier) {
+  public static <T, R> Fn<T, R> cached(final Function<T, R> f, final Supplier<Map<T, R>> supplier) {
     requireNonNull(f, "f");
     requireNonNull(supplier, "supplier");
     final Map<T, R> cache = supplier.get();
     return t -> cache.computeIfAbsent(t, f);
   }
 
-  public static <T, U, R> BiFunction<T, U, R> cached(final BiFunction<T, U, R> f) {
+  public static <T, U, R> BiFn<T, U, R> cached(final BiFunction<T, U, R> f) {
     return cached(f, ConcurrentHashMap::new);
   }
 
-  public static <T, U, R> BiFunction<T, U, R> cached(final BiFunction<T, U, R> f,
+  public static <T, U, R> BiFn<T, U, R> cached(final BiFunction<T, U, R> f,
       final Supplier<Map<Entry<T, U>, R>> supplier) {
     requireNonNull(f, "f");
     requireNonNull(supplier, "supplier");
@@ -168,24 +171,22 @@ public final class Functions {
     return (t, u) -> cache.computeIfAbsent(toPair(t, u), e -> f.apply(t, u));
   }
 
-  public static <T, R> Function<Supplier<T>, R> lazy(final Function<T, R> f) {
+  public static <T, R> Fn<Supplier<T>, R> lazy(final Function<T, R> f) {
     requireNonNull(f, "f");
     return s -> f.apply(s.get());
   }
 
-  public static <T, U, R> Function<Supplier<T>, Function<Supplier<U>, R>> lazy(
-      final BiFunction<T, U, R> f) {
+  public static <T, U, R> Fn<Supplier<T>, Fn<Supplier<U>, R>> lazy(final BiFunction<T, U, R> f) {
     requireNonNull(f, "f");
     return t -> u -> f.apply(t.get(), u.get());
   }
 
-  public static <T, R> Function<T, R> eager(final Function<Supplier<T>, R> f) {
+  public static <T, R> Fn<T, R> eager(final Function<Supplier<T>, R> f) {
     requireNonNull(f, "f");
     return t -> f.apply(() -> t);
   }
 
-  public static <T, U, R> Function<T, Function<U, R>> eager(
-      final BiFunction<Supplier<T>, Supplier<U>, R> f) {
+  public static <T, U, R> Fn<T, Fn<U, R>> eager(final BiFunction<Supplier<T>, Supplier<U>, R> f) {
     requireNonNull(f, "f");
     return t -> u -> f.apply(() -> t, () -> u);
   }
@@ -250,5 +251,120 @@ public final class Functions {
         return this.currentT;
       }
     };
+  }
+
+  public static <T, V, R> Fn<T, R> compose(final Function<V, R> f,
+      final Function<? super T, ? extends V> g) {
+    requireNonNull(f, "f");
+    requireNonNull(g, "g");
+    return (final T t) -> f.apply(g.apply(t));
+  }
+
+  public static <T, V, W, R> Fn<T, R> compose(final Function<W, R> f,
+      final Function<? super V, ? extends W> g, final Function<? super T, ? extends V> h) {
+    requireNonNull(f, "f");
+    requireNonNull(g, "g");
+    requireNonNull(h, "h");
+    return (final T t) -> f.apply(g.apply(h.apply(t)));
+  }
+
+  public static <T, V, W, X, R> Fn<T, R> compose(final Function<X, R> f,
+      final Function<? super W, ? extends X> g, final Function<? super V, ? extends W> h,
+      final Function<? super T, ? extends V> i) {
+    requireNonNull(f, "f");
+    requireNonNull(g, "g");
+    requireNonNull(h, "h");
+    requireNonNull(i, "i");
+    return (final T t) -> f.apply(g.apply(h.apply(i.apply(t))));
+  }
+
+  public static <C, A, E> Collector<E, A, C> collector(final Supplier<A> supplier,
+      final BiConsumer<A, E> accumulator, final BinaryOperator<A> combiner,
+      final Function<A, C> finisher, final Collector.Characteristics... characteristics) {
+    final EnumSet<Characteristics> set = EnumSet.noneOf(Characteristics.class);
+    if (characteristics != null)
+      set.addAll(asList(characteristics));
+    return new Collector<E, A, C>() {
+
+      @Override
+      public Supplier<A> supplier() {
+        return supplier;
+      }
+
+      @Override
+      public BiConsumer<A, E> accumulator() {
+        return accumulator;
+      }
+
+      @Override
+      public BinaryOperator<A> combiner() {
+        return combiner;
+      }
+
+      @Override
+      public Function<A, C> finisher() {
+        return finisher;
+      }
+
+      @Override
+      public Set<java.util.stream.Collector.Characteristics> characteristics() {
+        return set;
+      }
+
+    };
+  }
+
+  /**
+   * Easy creation of a concurrent {@link Collector} from an existing, concurrent collection and an
+   * accumulator.
+   */
+  public static <C, E> Collector<E, ?, C> collector(final C collection,
+      final BiConsumer<C, E> accumulator) {
+    return new Collector<E, C, C>() {
+
+      @Override
+      public Supplier<C> supplier() {
+        return () -> collection;
+      }
+
+      @Override
+      public BiConsumer<C, E> accumulator() {
+        return accumulator;
+      }
+
+      @Override
+      public BinaryOperator<C> combiner() {
+        return (x, y) -> x;
+      }
+
+      @Override
+      public Function<C, C> finisher() {
+        return Function.identity();
+      }
+
+      @Override
+      public Set<java.util.stream.Collector.Characteristics> characteristics() {
+        return EnumSet.of(Characteristics.IDENTITY_FINISH, Characteristics.CONCURRENT);
+      }
+    };
+  }
+
+  /**
+   * Easy creation of a concurrent {@link Collector} from an existing collection. The collector can
+   * be used on a parallel stream if the collection supports parallel access.
+   */
+  public static <C extends Collection<E>, E> Collector<E, ?, C> collector(final C collection) {
+    return collector(collection, (c, e) -> c.add(e));
+  }
+
+  /**
+   * Easy creation of a concurrent {@link Collector} from a collection type.
+   */
+  public static <C extends Collection<E>, E> Collector<E, ?, C> collector(
+      final Supplier<C> collection) {
+    return collector(collection, Collection::add, (a, b) -> {
+      a.addAll(b);
+      return a;
+    }, Function.identity(), Collections.singleton(Characteristics.IDENTITY_FINISH));
   }
 }
