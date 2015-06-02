@@ -101,11 +101,11 @@ public interface Pair<K, V> extends Entry<K, V>, Comparable<Entry<K, V>>, Serial
 
   public default K _1() {
     return this.getKey();
-  };
+  }
 
   public default V _2() {
     return this.getValue();
-  };
+  }
 
   @Override
   public default V setValue(final V value) {
