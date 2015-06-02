@@ -1,6 +1,7 @@
 package ch.claude_martin.function;
 
 import static java.util.Arrays.asList;
+import static java.util.Collections.unmodifiableSet;
 import static java.util.Objects.requireNonNull;
 
 import java.util.*;
@@ -310,7 +311,7 @@ public final class Functions {
 
       @Override
       public Set<java.util.stream.Collector.Characteristics> characteristics() {
-        return set;
+        return unmodifiableSet(set);
       }
 
     };
