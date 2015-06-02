@@ -4,6 +4,7 @@ import static java.util.Objects.requireNonNull;
 
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.concurrent.locks.Lock;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -101,6 +102,18 @@ public interface Fn<T, R> extends Function<T, R> {
 
   public default Fn<T, R> cached() {
     return Functions.cached(this);
+  }
+
+  public default Fn<T, R> sync() {
+    return Functions.sync(this);
+  }
+
+  public default Fn<T, R> sync(final Lock lock) {
+    return Functions.sync(this, lock);
+  }
+
+  public default Fn<T, R> sync(final Object mutex) {
+    return Functions.sync(this, mutex);
   }
 
   public static <T> Fn<T, T> identity() {

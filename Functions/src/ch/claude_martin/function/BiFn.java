@@ -5,6 +5,7 @@ import static java.util.Objects.requireNonNull;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.concurrent.locks.Lock;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Function;
@@ -61,5 +62,17 @@ public interface BiFn<T, U, R> extends BiFunction<T, U, R> {
 
   public default BiFn<T, U, R> cached(final Supplier<Map<Entry<T, U>, R>> supplier) {
     return Functions.cached(this, supplier);
+  }
+
+  public default BiFn<T, U, R> sync() {
+    return Functions.sync(this);
+  }
+
+  public default BiFn<T, U, R> sync(final Lock lock) {
+    return Functions.sync(this, lock);
+  }
+
+  public default BiFn<T, U, R> sync(final Object mutex) {
+    return Functions.sync(this, mutex);
   }
 }

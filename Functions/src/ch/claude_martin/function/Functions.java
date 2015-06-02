@@ -7,6 +7,8 @@ import java.util.*;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.*;
 import java.util.stream.*;
 import java.util.stream.Collector.Characteristics;
@@ -366,5 +368,63 @@ public final class Functions {
       a.addAll(b);
       return a;
     }, Function.identity(), Collections.singleton(Characteristics.IDENTITY_FINISH));
+  }
+
+  public static <T, R> Fn<T, R> sync(final Function<T, R> f) {
+    return sync(f, new ReentrantLock());
+  }
+
+  public static <T, R> Fn<T, R> sync(final Function<T, R> f, final Lock lock) {
+    requireNonNull(f, "f");
+    requireNonNull(lock, "lock");
+    return t -> {
+      lock.lock();
+      try {
+        return f.apply(t);
+      } finally {
+        lock.unlock();
+      }
+    };
+  }
+
+  public static <T, R> Fn<T, R> sync(final Function<T, R> f, final Object mutex) {
+    requireNonNull(f, "f");
+    requireNonNull(mutex, "mutex");
+    if (mutex instanceof Lock)
+      throw new RuntimeException("Mutex implements Lock, but wasn't used as such.");
+    return t -> {
+      synchronized (mutex) {
+        return f.apply(t);
+      }
+    };
+  }
+
+  public static <T, U, R> BiFn<T, U, R> sync(final BiFunction<T, U, R> f) {
+    return sync(f, new ReentrantLock());
+  }
+
+  public static <T, U, R> BiFn<T, U, R> sync(final BiFunction<T, U, R> f, final Lock lock) {
+    requireNonNull(f, "f");
+    requireNonNull(lock, "lock");
+    return (t, u) -> {
+      lock.lock();
+      try {
+        return f.apply(t, u);
+      } finally {
+        lock.unlock();
+      }
+    };
+  }
+
+  public static <T, U, R> BiFn<T, U, R> sync(final BiFunction<T, U, R> f, final Object mutex) {
+    requireNonNull(f, "f");
+    requireNonNull(mutex, "mutex");
+    if (mutex instanceof Lock)
+      throw new RuntimeException("Mutex implements Lock, but wasn't used as such.");
+    return (t, u) -> {
+      synchronized (mutex) {
+        return f.apply(t, u);
+      }
+    };
   }
 }
