@@ -29,6 +29,14 @@ public interface Pair<K, V> extends Entry<K, V>, Comparable<Entry<K, V>>, Serial
           Comparator.comparing(e -> (Comparable) e.getValue(),
               Comparator.nullsFirst(Comparator.naturalOrder())));
 
+  @SuppressWarnings("unchecked")
+  public static <K, V> Pair<K, V> of(final Entry<? extends K, ? extends V> e) {
+    requireNonNull(e, "e");
+    if (e instanceof Pair)
+      return (Pair<K, V>) e; // ok, because it's immutable.
+    return of(e.getKey(), e.getValue());
+  }
+
   public static <K, V> Pair<K, V> of(final K k, final V v) {
 
     return new Pair<K, V>() {
