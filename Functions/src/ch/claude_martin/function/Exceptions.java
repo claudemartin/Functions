@@ -17,6 +17,13 @@ public class Exceptions {
   public static class SneakyException extends RuntimeException {
     private static final long serialVersionUID = 2339428349576960472L;
 
+    public static RuntimeException of(final Throwable t) {
+      if (t instanceof RuntimeException)
+        return (RuntimeException) t;
+      return new SneakyException("Execution of function caused a checked, but uncaught exception.",
+          t);
+    }
+
     public SneakyException() {
       super();
     }
@@ -49,7 +56,7 @@ public class Exceptions {
       try {
         return this.tryApply(t);
       } catch (final Throwable x) {
-        throw rte(x);
+        throw SneakyException.of(x);
       }
     };
 
@@ -107,7 +114,7 @@ public class Exceptions {
       try {
         return this.tryApply(t, u);
       } catch (final Throwable x) {
-        throw rte(x);
+        throw SneakyException.of(x);
       }
     };
 
@@ -184,19 +191,13 @@ public class Exceptions {
     return toSneakyException(f);
   }
 
-  static RuntimeException rte(final Throwable t) {
-    if (t instanceof RuntimeException)
-      return (RuntimeException) t;
-    return new SneakyException("Execution of function caused a checked, but uncaught exception.", t);
-  }
-
   public static <T, R> Fn<T, R> toSneakyException(final RiskyFn<T, R> f) {
     requireNonNull(f, "f");
     return (t) -> {
       try {
         return f.tryApply(t);
       } catch (final Throwable e) {
-        throw rte(e);
+        throw SneakyException.of(e);
       }
     };
   }
@@ -207,7 +208,7 @@ public class Exceptions {
       try {
         return f.tryApply(t, u);
       } catch (final Throwable e) {
-        throw rte(e);
+        throw SneakyException.of(e);
       }
     };
   }
@@ -220,7 +221,7 @@ public class Exceptions {
         return f.tryApply(t);
       } catch (final Throwable e) {
         logger.accept(e);
-        throw rte(e);
+        throw SneakyException.of(e);
       }
     };
   }
@@ -234,7 +235,7 @@ public class Exceptions {
         return f.tryApply(t, u);
       } catch (final Throwable e) {
         logger.accept(e);
-        throw rte(e);
+        throw SneakyException.of(e);
       }
     };
   }
