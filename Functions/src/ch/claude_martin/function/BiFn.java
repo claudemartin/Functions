@@ -14,6 +14,11 @@ import java.util.function.Supplier;
 @FunctionalInterface
 public interface BiFn<T, U, R> extends BiFunction<T, U, R> {
 
+  public default R applyPair(final Entry<? extends T, ? extends U> pair) {
+    requireNonNull(pair, "pair");
+    return this.apply(pair.getKey(), pair.getValue());
+  }
+
   /** Ignores the result. */
   public default BiConsumer<T, U> toVoid() {
     return this::apply;

@@ -428,4 +428,24 @@ public final class Functions {
       }
     };
   }
+
+  /** Throws {@link NullPointerException} of in- or output is null. */
+  public static <T, R> Fn<T, R> nonNull(final Function<T, R> f) {
+    requireNonNull(f, "f");
+    return (t) -> {
+      requireNonNull(t, "input must not be null");
+      return requireNonNull(f.apply(t), "output must not be null");
+    };
+  }
+
+  /** Throws {@link NullPointerException} of in- or output is null. */
+  public static <T, U, R> BiFn<T, U, R> nonNull(final BiFunction<T, U, R> f) {
+    requireNonNull(f, "f");
+    return (t, u) -> {
+      requireNonNull(t, "input must not be null");
+      requireNonNull(u, "input must not be null");
+      return requireNonNull(f.apply(t, u), "output must not be null");
+    };
+  }
+
 }

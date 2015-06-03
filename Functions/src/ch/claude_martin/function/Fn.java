@@ -116,6 +116,10 @@ public interface Fn<T, R> extends Function<T, R> {
     return Functions.sync(this, mutex);
   }
 
+  public default Fn<T, R> nonNull() {
+    return Functions.nonNull(this);
+  }
+
   public static <T> Fn<T, T> identity() {
     return t -> t;
   }
