@@ -12,7 +12,11 @@ import java.util.function.Supplier;
  * Closures that throw exceptions. Most predefined functional interfaces do not throw any checked
  * exceptions. These utility methods help using methods that throw checked or unchecked exceptions.
  * */
-public class Exceptions {
+public final class Exceptions {
+
+  private Exceptions() {
+    throw new RuntimeException("Can't create utility class!");
+  }
 
   public static class SneakyException extends RuntimeException {
     private static final long serialVersionUID = 2339428349576960472L;

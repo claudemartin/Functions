@@ -21,6 +21,10 @@ import java.util.stream.Collector.Characteristics;
  */
 public final class Functions {
 
+  private Functions() {
+    throw new RuntimeException("Can't create utility class!");
+  }
+
   public static <T, R> Consumer<T> toVoid(final Function<T, R> f) {
     return f::apply;
   }
