@@ -126,7 +126,7 @@ public interface Fn<T, R> extends Function<T, R> {
     return Functions.nonNull(this);
   }
   
-	public default Entry<T, R> zip(final T t) {
+	public default Entry<T, R> paired(final T t) {
     return Pair.of(t, this.apply(t));
 	}
 	
