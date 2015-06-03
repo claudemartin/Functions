@@ -158,7 +158,7 @@ public class Exceptions {
       try {
         return f.apply(t);
       } catch (final Throwable e) {
-        throw new RuntimeException(name + " could not be executed because of " + e, e);
+        throw new RuntimeException(name + " could not be executed because of: " + e, e);
       }
     };
   }
@@ -169,7 +169,7 @@ public class Exceptions {
       try {
         return f.apply(t, u);
       } catch (final Throwable e) {
-        throw new RuntimeException(name + " could not be executed because of " + e, e);
+        throw new RuntimeException(name + " could not be executed because of: " + e, e);
       }
     };
   }
