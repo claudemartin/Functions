@@ -2,12 +2,14 @@ package ch.claude_martin.function;
 
 import static java.util.Objects.requireNonNull;
 
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.concurrent.locks.Lock;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 /**
  * Functional interface like {@link Function} but with shorter name and some more methods.
@@ -28,8 +30,8 @@ public interface Fn<T, R> extends Function<T, R> {
   }
 
   /** Ignores the result. */
-  public default Consumer<T> toVoid(final Function<T, R> f) {
-    return f::apply;
+  public default Consumer<T> toVoid() {
+    return this::apply;
   }
 
   /** This only works if R extends {@link Function}. */
@@ -103,6 +105,10 @@ public interface Fn<T, R> extends Function<T, R> {
   public default Fn<T, R> cached() {
     return Functions.cached(this);
   }
+  
+  public default Fn<T, R> cached(Supplier<Map<T,R>> supplier) {
+    return Functions.cached(this, supplier);
+  }
 
   public default Fn<T, R> sync() {
     return Functions.sync(this);
@@ -119,7 +125,11 @@ public interface Fn<T, R> extends Function<T, R> {
   public default Fn<T, R> nonNull() {
     return Functions.nonNull(this);
   }
-
+  
+	public default Entry<T, R> zip(final T t) {
+    return Pair.of(t, this.apply(t));
+	}
+	
   public static <T> Fn<T, T> identity() {
     return t -> t;
   }
