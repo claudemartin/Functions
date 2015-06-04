@@ -6,10 +6,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.concurrent.locks.Lock;
-import java.util.function.BiFunction;
-import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.function.Supplier;
+import java.util.function.*;
 
 /**
  * Functional interface like {@link Function} but with shorter name and some more methods.
@@ -23,6 +20,74 @@ import java.util.function.Supplier;
  */
 @FunctionalInterface
 public interface Fn<T, R> extends Function<T, R> {
+
+  public static <T, R> Fn<T, R> of(final Function<T, R> f) {
+    return f::apply;
+  }
+
+  public static <T> Fn<Integer, T> of(final IntFunction<T> f) {
+    return f::apply;
+  }
+
+  public static Fn<Integer, Long> of(final IntToLongFunction f) {
+    return f::applyAsLong;
+  }
+
+  public static Fn<Integer, Double> of(final IntToDoubleFunction f) {
+    return f::applyAsDouble;
+  }
+
+  public static <T> Fn<Double, T> of(final DoubleFunction<T> f) {
+    return f::apply;
+  }
+
+  public static Fn<Double, Long> of(final DoubleToLongFunction f) {
+    return f::applyAsLong;
+  }
+
+  public static Fn<Double, Integer> of(final DoubleToIntFunction f) {
+    return f::applyAsInt;
+  }
+
+  public static <T> Fn<Long, T> of(final LongFunction<T> f) {
+    return f::apply;
+  }
+
+  public static Fn<Long, Integer> of(final LongToIntFunction f) {
+    return f::applyAsInt;
+  }
+
+  public static Fn<Long, Double> of(final LongToDoubleFunction f) {
+    return f::applyAsDouble;
+  }
+
+  public static <T> Fn<T, Long> of(final ToLongFunction<T> f) {
+    return f::applyAsLong;
+  }
+
+  public static <T> Fn<T, Double> of(final ToDoubleFunction<T> f) {
+    return f::applyAsDouble;
+  }
+
+  public static <T> Fn<T, T> of(final UnaryOperator<T> f) {
+    return f::apply;
+  }
+
+  public static Fn<Integer, Integer> of(final IntUnaryOperator f) {
+    return f::applyAsInt;
+  }
+
+  public static Fn<Long, Long> of(final LongUnaryOperator f) {
+    return f::applyAsLong;
+  }
+
+  public static Fn<Double, Double> of(final DoubleUnaryOperator f) {
+    return f::applyAsDouble;
+  }
+
+  public static <T> Fn<T, Boolean> of(final Predicate<T> f) {
+    return f::test;
+  }
 
   /** Shorter synonym for {@link #apply(Object)}. */
   public default R a(final T t) {
@@ -105,8 +170,8 @@ public interface Fn<T, R> extends Function<T, R> {
   public default Fn<T, R> cached() {
     return Functions.cached(this);
   }
-  
-  public default Fn<T, R> cached(Supplier<Map<T,R>> supplier) {
+
+  public default Fn<T, R> cached(final Supplier<Map<T, R>> supplier) {
     return Functions.cached(this, supplier);
   }
 
@@ -125,11 +190,17 @@ public interface Fn<T, R> extends Function<T, R> {
   public default Fn<T, R> nonNull() {
     return Functions.nonNull(this);
   }
-  
-	public default Entry<T, R> paired(final T t) {
+
+  /**
+   * Applies t to this and returns a pair of t and the result.
+   * <p>
+   * Can be used to map to pairs: <br/>
+   * {@code coll.stream().map(f::paired); 
+   */
+  public default Pair<T, R> paired(final T t) {
     return Pair.of(t, this.apply(t));
-	}
-	
+  }
+
   public static <T> Fn<T, T> identity() {
     return t -> t;
   }

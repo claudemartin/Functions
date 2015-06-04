@@ -6,13 +6,46 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.concurrent.locks.Lock;
-import java.util.function.BiConsumer;
-import java.util.function.BiFunction;
-import java.util.function.Function;
-import java.util.function.Supplier;
+import java.util.function.*;
 
 @FunctionalInterface
 public interface BiFn<T, U, R> extends BiFunction<T, U, R> {
+
+  public static <T, U, R> BiFn<T, U, R> of(final BiFunction<T, U, R> f) {
+    return f::apply;
+  }
+
+  public static BiFn<Long, Long, Long> of(final LongBinaryOperator f) {
+    return f::applyAsLong;
+  }
+
+  public static <T> BiFn<T, T, T> of(final BinaryOperator<T> f) {
+    return f::apply;
+  }
+
+  public static <T, U> BiFn<T, U, Boolean> of(final BiPredicate<T, U> f) {
+    return f::test;
+  }
+
+  public static BiFn<Double, Double, Double> of(final DoubleBinaryOperator f) {
+    return f::applyAsDouble;
+  }
+
+  public static BiFn<Integer, Integer, Integer> of(final IntBinaryOperator f) {
+    return f::applyAsInt;
+  }
+
+  public static <T, U> BiFn<T, U, Integer> of(final ToIntBiFunction<T, U> f) {
+    return f::applyAsInt;
+  }
+
+  public static <T, U> BiFn<T, U, Double> of(final ToDoubleBiFunction<T, U> f) {
+    return f::applyAsDouble;
+  }
+
+  public static <T, U> BiFn<T, U, Long> of(final ToLongBiFunction<T, U> f) {
+    return f::applyAsLong;
+  }
 
   public default R applyPair(final Entry<? extends T, ? extends U> pair) {
     requireNonNull(pair, "pair");
