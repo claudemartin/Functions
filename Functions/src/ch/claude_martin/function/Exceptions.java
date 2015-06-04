@@ -104,9 +104,6 @@ public final class Exceptions {
       return Exceptions.toMaybe(this);
     }
 
-    public default Fn<T, R> named(final String name) {
-      return Exceptions.named(this, name);
-    }
   }
 
   @FunctionalInterface
@@ -163,13 +160,21 @@ public final class Exceptions {
 
   }
 
-  /** Creates a function that will have a name so that stac ktraces are easier to read. */
+  private static String getMessage(Throwable e, String name) {
+    return String.format("'%s' could not be executed because of: %s", e, name);
+  }
+
+  /**
+   * Creates a function that will have a name so that stack traces are easier to
+   * read. This must be used after any other exceptions-related modifications of
+   * the function.
+   */
   public static <T, R> Fn<T, R> named(final Function<T, R> f, final String name) {
     return t -> {
       try {
         return f.apply(t);
       } catch (final Throwable e) {
-        throw new RuntimeException(name + " could not be executed because of: " + e, e);
+        throw new RuntimeException(getMessage(e, name));
       }
     };
   }
@@ -180,7 +185,7 @@ public final class Exceptions {
       try {
         return f.apply(t, u);
       } catch (final Throwable e) {
-        throw new RuntimeException(name + " could not be executed because of: " + e, e);
+        throw new RuntimeException(getMessage(e, name));
       }
     };
   }
