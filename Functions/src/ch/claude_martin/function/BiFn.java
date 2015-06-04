@@ -8,6 +8,8 @@ import java.util.Objects;
 import java.util.concurrent.locks.Lock;
 import java.util.function.*;
 
+import ch.claude_martin.function.Exceptions.RiskyBiFn;
+
 @FunctionalInterface
 public interface BiFn<T, U, R> extends BiFunction<T, U, R> {
 
@@ -66,7 +68,9 @@ public interface BiFn<T, U, R> extends BiFunction<T, U, R> {
   }
 
   public default BiFn<T, U, R> sneaky() {
-    return Exceptions.sneaky(this::apply);
+  	if(this instanceof RiskyBiFn)
+  		return Exceptions.sneaky((RiskyBiFn<T,U,R>) this);
+  	return this;
   }
 
   /**
