@@ -8,10 +8,8 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-/**
- * Closures that throw exceptions. Most predefined functional interfaces do not throw any checked
- * exceptions. These utility methods help using methods that throw checked or unchecked exceptions.
- * */
+/** Closures that throw exceptions. Most predefined functional interfaces do not throw any checked
+ * exceptions. These utility methods help using methods that throw checked or unchecked exceptions. */
 public final class Exceptions {
 
   private Exceptions() {
@@ -55,12 +53,9 @@ public final class Exceptions {
     return String.format("'%s' could not be executed because of: %s", e, name);
   }
 
-  /**
-   * Creates a function that will have a name so that stack traces are easier to
-   * read. This must be used after any other exceptions-related modifications of
-   * the function.
-   */
-  public static <T, R> Fn<T, R> named(final Function<T, R> f, final String name) {
+  /** Creates a function that will have a name so that stack traces are easier to read. This must be
+   * used after any other exceptions-related modifications of the function. */
+  public static <T, R> Fn<T, R> named(final Function<? super T, ? extends R> f, final String name) {
     return t -> {
       try {
         return f.apply(t);
@@ -71,7 +66,8 @@ public final class Exceptions {
   }
 
   /** Creates a function that will have a name so that stac ktraces are easier to read. */
-  public static <T, U, R> BiFn<T, U, R> named(final BiFunction<T, U, R> f, final String name) {
+  public static <T, U, R> BiFn<T, U, R> named(
+      final BiFunction<? super T, ? super U, ? extends R> f, final String name) {
     return (t, u) -> {
       try {
         return f.apply(t, u);
@@ -140,10 +136,8 @@ public final class Exceptions {
     };
   }
 
-  /**
-   * Returns the given value if any exception is thrown. This still may return null, if the given
-   * function returns null.
-   */
+  /** Returns the given value if any exception is thrown. This still may return null, if the given
+   * function returns null. */
   public static <T, R> Fn<T, R> orElse(final RiskyFn<T, R> f, final R value) {
     requireNonNull(f, "f");
     return (t) -> {
@@ -230,8 +224,8 @@ public final class Exceptions {
     };
   }
 
-  public static <T, R> Fn<T, R> orElseGet(final RiskyFn<T, R> f, final Supplier<R> ifNull,
-      final Function<Throwable, R> ifException) {
+  public static <T, R> Fn<T, R> orElseGet(final RiskyFn<? super T, ? extends R> f,
+      final Supplier<? extends R> ifNull, final Function<? super Throwable, ? extends R> ifException) {
     requireNonNull(f, "f");
     requireNonNull(ifNull, "ifNull");
     requireNonNull(ifException, "ifException");
@@ -247,8 +241,9 @@ public final class Exceptions {
     };
   }
 
-  public static <T, U, R> BiFn<T, U, R> orElseGet(final RiskyBiFn<T, U, R> f,
-      final Supplier<R> ifNull, final Function<Throwable, R> ifException) {
+  public static <T, U, R> BiFn<T, U, R> orElseGet(
+      final RiskyBiFn<? super T, ? super U, ? extends R> f, final Supplier<? extends R> ifNull,
+      final Function<? super Throwable, ? extends R> ifException) {
     requireNonNull(f, "f");
     requireNonNull(ifNull, "ifNull");
     requireNonNull(ifException, "ifException");
@@ -264,7 +259,7 @@ public final class Exceptions {
     };
   }
 
-  public static <T, R> Fn<T, Optional<R>> toOptional(final RiskyFn<T, R> f) {
+  public static <T, R> Fn<T, Optional<R>> toOptional(final RiskyFn<? super T, ? extends R> f) {
     requireNonNull(f, "f");
     return (t) -> {
       try {
@@ -275,7 +270,8 @@ public final class Exceptions {
     };
   }
 
-  public static <T, U, R> BiFn<T, U, Optional<R>> toOptional(final RiskyBiFn<T, U, R> f) {
+  public static <T, U, R> BiFn<T, U, Optional<R>> toOptional(
+      final RiskyBiFn<? super T, ? super U, ? extends R> f) {
     requireNonNull(f, "f");
     return (t, u) -> {
       try {
@@ -286,7 +282,7 @@ public final class Exceptions {
     };
   }
 
-  public static <T, R> Fn<T, Maybe<R>> toMaybe(final RiskyFn<T, R> f) {
+  public static <T, R> Fn<T, Maybe<R>> toMaybe(final RiskyFn<? super T, ? extends R> f) {
     requireNonNull(f, "f");
     return (t) -> {
       try {
@@ -297,7 +293,8 @@ public final class Exceptions {
     };
   }
 
-  public static <T, U, R> BiFn<T, U, Maybe<R>> toMaybe(final RiskyBiFn<T, U, R> f) {
+  public static <T, U, R> BiFn<T, U, Maybe<R>> toMaybe(
+      final RiskyBiFn<? super T, ? super U, ? extends R> f) {
     requireNonNull(f, "f");
     return (t, u) -> {
       try {
@@ -308,7 +305,7 @@ public final class Exceptions {
     };
   }
 
-  public static <T, R> Fn<T, R> toNull(final RiskyFn<T, R> f) {
+  public static <T, R> Fn<T, R> toNull(final RiskyFn<? super T, ? extends R> f) {
     requireNonNull(f, "f");
     return (t) -> {
       try {
@@ -319,7 +316,7 @@ public final class Exceptions {
     };
   }
 
-  public static <T, U, R> BiFn<T, U, R> toNull(final RiskyBiFn<T, U, R> f) {
+  public static <T, U, R> BiFn<T, U, R> toNull(final RiskyBiFn<? super T, ? super U, ? extends R> f) {
     requireNonNull(f, "f");
     return (t, u) -> {
       try {
@@ -330,7 +327,7 @@ public final class Exceptions {
     };
   }
 
-  public static <T, R> Fn<T, R> retry(final RiskyFn<T, R> f) {
+  public static <T, R> Fn<T, R> retry(final RiskyFn<? super T, ? extends R> f) {
     requireNonNull(f, "f");
     return (t) -> {
       final Thread thread = Thread.currentThread();
@@ -344,7 +341,7 @@ public final class Exceptions {
     };
   }
 
-  public static <T, U, R> BiFn<T, U, R> retry(final RiskyBiFn<T, U, R> f) {
+  public static <T, U, R> BiFn<T, U, R> retry(final RiskyBiFn<? super T, ? super U, ? extends R> f) {
     requireNonNull(f, "f");
     return (t, u) -> {
       final Thread thread = Thread.currentThread();

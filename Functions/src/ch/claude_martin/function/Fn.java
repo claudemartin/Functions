@@ -8,6 +8,8 @@ import java.util.Objects;
 import java.util.concurrent.locks.Lock;
 import java.util.function.*;
 
+import ch.claude_martin.function.tuple.Pair;
+
 /** Functional interface like {@link Function} but with shorter name and some more methods.
  * 
  * @author Claude martin
@@ -105,7 +107,7 @@ public interface Fn<T, R> extends Function<T, R> {
 
   /** This only works if {@code T extends Entry<A,B>}. */
   @SuppressWarnings("unchecked")
-  public default <A, B> BiFunction<A, B, R> toBiFunction2() {
+  public default <A, B> BiFn<A, B, R> toBiFn() {
     return Functions.toBiFunction2((Function<Entry<A, B>, R>) this);
   }
 
@@ -190,6 +192,5 @@ public interface Fn<T, R> extends Function<T, R> {
   public static <T> Fn<T, T> identity() {
     return t -> t;
   }
-
 
 }

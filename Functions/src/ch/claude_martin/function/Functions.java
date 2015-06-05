@@ -14,11 +14,11 @@ import java.util.function.*;
 import java.util.stream.*;
 import java.util.stream.Collector.Characteristics;
 
-/**
- * Utility methods for functions.
+import ch.claude_martin.function.tuple.Pair;
+
+/** Utility methods for functions.
  * 
- * @author Claude Martin
- */
+ * @author Claude Martin */
 public final class Functions {
 
   private Functions() {
@@ -66,78 +66,83 @@ public final class Functions {
   }
 
   public static <T, U, R> Fn<Entry<? extends T, ? extends U>, R> uncurry(
-      final Function<T, ? extends Function<U, R>> f) {
+      final Function<T, ? extends Function<? super U, ? extends R>> f) {
     return e -> f.apply(e.getKey()).apply(e.getValue());
   }
 
-  public static <T, U, R> Fn<Entry<T, U>, R> uncurry2(final BiFunction<T, U, R> f) {
+  public static <T, U, R> Fn<Entry<T, U>, R> uncurry2(
+      final BiFunction<? super T, ? super U, ? extends R> f) {
     return e -> f.apply(e.getKey(), e.getValue());
   }
 
-  /**
-   * Curried to {@link BiFunction}.
+  /** Curried to {@link BiFunction}.
    * 
-   * @see #toBiFunction2(Function)
-   */
+   * @see #toBiFunction2(Function) */
   public static <T, U, R> BiFn<T, U, R> toBiFunction(
-      final Function<T, ? extends Function<U, R>> f) {
+      final Function<T, ? extends Function<? super U, ? extends R>> f) {
     return (t, u) -> f.apply(t).apply(u);
   }
 
-  /**
-   * Uncurried to {@link BiFunction}.
+  /** Uncurried to {@link BiFunction}.
    * 
-   * @see #toBiFunction(Function)
-   */
-  public static <T, U, R> BiFunction<T, U, R> toBiFunction2(final Function<Entry<T, U>, R> f) {
+   * @see #toBiFunction(Function) */
+  public static <T, U, R> BiFn<T, U, R> toBiFunction2(
+      final Function<? super Entry<T, U>, ? extends R> f) {
     return (t, u) -> f.apply(toPair(t, u));
   }
 
-  public static <T, R> Supplier<R> setFirst(final Function<T, R> f, final T first) {
+  public static <T, R> Supplier<R> setFirst(final Function<? super T, ? extends R> f, final T first) {
     return () -> f.apply(first);
   }
 
-  public static <T, U, R> Fn<U, R> setFirst(final BiFunction<T, U, R> f, final T first) {
+  public static <T, U, R> Fn<U, R> setFirst(final BiFunction<? super T, ? super U, ? extends R> f,
+      final T first) {
     return snd -> f.apply(first, snd);
   }
 
-  public static <T, U, R> Fn<T, R> setSecond(final BiFunction<T, U, R> f, final U second) {
+  public static <T, U, R> Fn<T, R> setSecond(final BiFunction<? super T, ? super U, ? extends R> f,
+      final U second) {
     return first -> f.apply(first, second);
   }
 
-  public static <T, U, R> Fn<T, R> setSecond(final Function<T, Function<U, R>> f, final U second) {
+  public static <T, U, R> Fn<T, R> setSecond(
+      final Function<? super T, ? extends Function<? super U, ? extends R>> f, final U second) {
     return first -> f.apply(first).apply(second);
   }
 
   public static <T, U, V, R> Fn<T, Fn<U, R>> setThird(
-      final Function<T, Function<U, Function<V, R>>> f, final V third) {
+      final Function<? super T, ? extends Function<? super U, ? extends Function<? super V, ? extends R>>> f,
+          final V third) {
     return first -> second -> f.apply(first).apply(second).apply(third);
   }
 
-  public static <A, B> List<Pair<A, B>> zip(final Collection<A> a, final Collection<B> b) {
+  @SuppressWarnings("unused")
+  public static <A, B> List<Pair<A, B>> zip(final Collection<? extends A> a,
+      final Collection<? extends B> b) {
     requireNonNull(a, "a");
     requireNonNull(b, "b");
     return zip(//
-        () -> new ArrayList<>(Math.min(a.size(), b.size())), // creates new List
+        () -> new ArrayList<Pair<A, B>>(Math.min(a.size(), b.size())), // creates new List
         Functions::toPair, // Creates Entry of two elements
         a, b); // both lists.
   }
 
-  static <A, B, PAIR> List<PAIR> zip(final Supplier<List<PAIR>> supplier,
-      final BiFunction<A, B, PAIR> zipper, final Iterable<A> a, final Iterable<B> b) {
+  static <A, B, PAIR> List<PAIR> zip(final Supplier<? extends List<PAIR>> supplier,
+      final BiFunction<? super A, ? super B, ? extends PAIR> zipper, //
+      final Iterable<? extends A> a, final Iterable<? extends B> b) {
     requireNonNull(supplier, "supplier");
     requireNonNull(zipper, "zipper");
     requireNonNull(a, "a");
     requireNonNull(b, "b");
-    final Iterator<A> itrA = a.iterator();
-    final Iterator<B> itrB = b.iterator();
+    final Iterator<? extends A> itrA = a.iterator();
+    final Iterator<? extends B> itrB = b.iterator();
     final List<PAIR> result = supplier.get();
     while (itrA.hasNext() && itrB.hasNext())
       result.add(zipper.apply(itrA.next(), itrB.next()));
     return result;
   }
 
-  public static <A, B> Pair<List<A>, List<B>> unzip(final List<Entry<A, B>> pairs) {
+  public static <A, B> Pair<List<A>, List<B>> unzip(final List<? extends Entry<A, B>> pairs) {
     requireNonNull(pairs, "pairs");
     final int size = pairs.size();
     final ArrayList<A> a = new ArrayList<>(size);
@@ -151,7 +156,7 @@ public final class Functions {
     return result;
   }
 
-  public static <A, B> Map<A, B> toMap(final List<Entry<A, B>> pairs) {
+  public static <A, B> Map<A, B> toMap(final List<? extends Entry<A, B>> pairs) {
     return pairs.stream().collect(Collectors.toMap(Entry::getKey, Entry::getValue));
   }
 
@@ -221,13 +226,13 @@ public final class Functions {
       action.accept(t);
   }
 
-  public static <T> void forEachReversed(final T head, final Function<T, T> next,
+  public static <T> void forEachReversed(final T head, final Function<? super T, ? extends T> next,
       final Consumer<T> action) {
     forEachReversed(head, next, null, action);
   }
 
-  public static <T> void forEachReversed(final T head, final Function<T, T> next, final T end,
-      final Consumer<T> action) {
+  public static <T> void forEachReversed(final T head, final Function<? super T, ? extends T> next,
+      final T end, final Consumer<? super T> action) {
     requireNonNull(next, "next");
     requireNonNull(action, "action");
     if (Objects.equals(head, end))
@@ -236,23 +241,25 @@ public final class Functions {
     action.accept(head);
   }
 
-  public static <T> Optional<T> find(final T head, final Function<T, T> next, final T end,
-      final Predicate<T> predicate) {
+  public static <T> Optional<T> find(final T head, final Function<? super T, ? extends T> next,
+      final T end, final Predicate<? super T> predicate) {
     requireNonNull(predicate, "predicate");
     return stream(head, next, end).filter(predicate).findAny();
   }
 
-  public static <T> Stream<T> stream(final T head, final Function<T, T> next, final T end) {
+  public static <T> Stream<T> stream(final T head, final Function<? super T, ? extends T> next,
+      final T end) {
     requireNonNull(head, "head");
     requireNonNull(next, "next");
     return StreamSupport.stream(
         Spliterators.spliteratorUnknownSize(iterator(head, next, end), Spliterator.ORDERED), false);
   }
 
-  public static <T> Iterator<T> iterator(final T head, final Function<T, T> next, final T end) {
+  public static <T> Iterator<T> iterator(final T head, final Function<? super T, ? extends T> next,
+      final T end) {
     return new Iterator<T>() {
       T currentT = head;
-      T nextT = next.apply(head);
+      T nextT    = next.apply(head);
 
       @Override
       public boolean hasNext() {
@@ -331,10 +338,8 @@ public final class Functions {
     };
   }
 
-  /**
-   * Easy creation of a concurrent {@link Collector} from an existing, concurrent collection and an
-   * accumulator.
-   */
+  /** Easy creation of a concurrent {@link Collector} from an existing, concurrent collection and an
+   * accumulator. */
   public static <C, E> Collector<E, ?, C> collector(final C collection,
       final BiConsumer<C, E> accumulator) {
     return new Collector<E, C, C>() {
@@ -366,17 +371,13 @@ public final class Functions {
     };
   }
 
-  /**
-   * Easy creation of a concurrent {@link Collector} from an existing collection. The collector can
-   * be used on a parallel stream if the collection supports parallel access.
-   */
+  /** Easy creation of a concurrent {@link Collector} from an existing collection. The collector can
+   * be used on a parallel stream if the collection supports parallel access. */
   public static <C extends Collection<E>, E> Collector<E, ?, C> collector(final C collection) {
     return collector(collection, (c, e) -> c.add(e));
   }
 
-  /**
-   * Easy creation of a concurrent {@link Collector} from a collection type.
-   */
+  /** Easy creation of a concurrent {@link Collector} from a collection type. */
   public static <C extends Collection<E>, E> Collector<E, ?, C> collector(
       final Supplier<C> collection) {
     return collector(collection, Collection::add, (a, b) -> {
