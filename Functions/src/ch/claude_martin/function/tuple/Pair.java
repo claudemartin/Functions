@@ -11,6 +11,7 @@ import java.util.function.BinaryOperator;
 import java.util.function.Function;
 
 import ch.claude_martin.function.Functions;
+import ch.claude_martin.function.tuple.PairImpl.UniPairImpl;
 
 /** This describes a tuple, based on {@link Entry}, that is comparable, iff both elements are
  * comparable. This allows null for key and value but is supposed to be immutable.
@@ -41,11 +42,12 @@ public interface Pair<K, V> extends Entry<K, V>, Comparable<Entry<K, V>>, Serial
   }
 
   public static <K, V> Pair<K, V> of(final K k, final V v) {
-
     return new PairImpl<>(k, v);
-
   }
 
+  public static <T> UniPair<T> uniform(final T t1, final T t2) {
+    return new UniPairImpl<>(t1, t2);
+  }
 
   /** Tries to compare two entries. This fails if any element is not comparable, however
    * <tt>null</tt> is allowed. The given entries no not need to implement {@link Comparable}, but

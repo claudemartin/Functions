@@ -15,6 +15,7 @@ import java.util.stream.*;
 import java.util.stream.Collector.Characteristics;
 
 import ch.claude_martin.function.tuple.Pair;
+import ch.claude_martin.function.tuple.Pair.UniPair;
 
 /** Utility methods for functions.
  * 
@@ -114,6 +115,17 @@ public final class Functions {
       final Function<? super T, ? extends Function<? super U, ? extends Function<? super V, ? extends R>>> f,
           final V third) {
     return first -> second -> f.apply(first).apply(second).apply(third);
+  }
+
+  @SuppressWarnings("unused")
+  public static <T> List<UniPair<T>> zipUni(final Collection<? extends T> a,
+      final Collection<? extends T> b) {
+    requireNonNull(a, "a");
+    requireNonNull(b, "b");
+    return zip(//
+        () -> new ArrayList<UniPair<T>>(Math.min(a.size(), b.size())), // creates new List
+        Pair::uniform, // Creates Entry of two elements
+        a, b); // both lists.
   }
 
   @SuppressWarnings("unused")
