@@ -8,8 +8,6 @@ import java.util.Objects;
 import java.util.concurrent.locks.Lock;
 import java.util.function.*;
 
-import ch.claude_martin.function.Exceptions.RiskyFn;
-
 /**
  * Functional interface like {@link Function} but with shorter name and some more methods.
  * 
@@ -126,16 +124,16 @@ public interface Fn<T, R> extends Function<T, R> {
   }
 
   public default Fn<T, R> sneaky() {
-  	if(this instanceof RiskyFn)
-  		return Exceptions.sneaky((RiskyFn<T,R>) this);
-  	return this;
-	}
+    return this;
+  }
 
-	/** Creates a function that will have a name so that stack traces are easier to read. This must be used after any other exceptions-related
-	 * modifications of the function. */
-	public default Fn<T, R> named(final String name) {
-		return Exceptions.named(this, name);
-	}
+  /**
+   * Creates a function that will have a name so that stack traces are easier to read. This must be
+   * used after any other exceptions-related modifications of the function.
+   */
+  public default Fn<T, R> named(final String name) {
+    return Exceptions.named(this, name);
+  }
 
   /**
    * Returns value if any exception is thrown or if result is null.

@@ -68,9 +68,7 @@ public interface BiFn<T, U, R> extends BiFunction<T, U, R> {
   }
 
   public default BiFn<T, U, R> sneaky() {
-  	if(this instanceof RiskyBiFn)
-  		return Exceptions.sneaky((RiskyBiFn<T,U,R>) this);
-  	return this;
+    return this;
   }
 
   /**
