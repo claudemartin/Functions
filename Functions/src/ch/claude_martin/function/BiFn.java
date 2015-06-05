@@ -127,7 +127,7 @@ public interface BiFn<T, U, R> extends BiFunction<T, U, R> {
     return Functions.sync(this, mutex);
   }
 
-  public default Fn<T, R> set2(final U second) {
+  public default Fn<T, R> set2nd(final U second) {
     return Functions.set2nd(this, second);
   }
 }
