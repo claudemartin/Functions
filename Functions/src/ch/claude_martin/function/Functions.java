@@ -16,6 +16,8 @@ import java.util.stream.Collector.Characteristics;
 
 import ch.claude_martin.function.tuple.Pair;
 import ch.claude_martin.function.tuple.Pair.UniPair;
+import ch.claude_martin.function.tuple.Quad;
+import ch.claude_martin.function.tuple.Triplet;
 
 /** Utility methods for functions.
  * 
@@ -66,14 +68,38 @@ public final class Functions {
     return t -> u -> v -> w -> f.apply4(t, u, v, w);
   }
 
-  public static <T, U, R> Fn<Entry<? extends T, ? extends U>, R> uncurry(
+  public static <T, U, R> Fn<Entry<T, U>, R> uncurry2(
       final Function<T, ? extends Function<? super U, ? extends R>> f) {
     return e -> f.apply(e.getKey()).apply(e.getValue());
   }
 
-  public static <T, U, R> Fn<Entry<T, U>, R> uncurry2(
+  public static <T, U, R> Fn<Entry<T, U>, R> uncurryBi(
       final BiFunction<? super T, ? super U, ? extends R> f) {
     return e -> f.apply(e.getKey(), e.getValue());
+  }
+
+  public static <T, U, V, R> Fn<Triplet<T, U, V>, R> uncurry3(
+      final Function<T, ? extends Function<? super U, ? extends Function<? super V, ? extends R>>> f) {
+    requireNonNull(f, "f");
+    return t -> f.apply(t._1()).apply(t._2()).apply(t._3());
+  }
+
+  public static <T, U, V, R> Fn<Triplet<T, U, V>, R> uncurryTri(
+      final TriFn<? super T, ? super U, ? super V, ? extends R> f) {
+    requireNonNull(f, "f");
+    return t -> f.apply3(t._1(), t._2(), t._3());
+  }
+
+  public static <T, U, V, W, R> Fn<Quad<T, U, V, W>, R> uncurry4(
+      final Function<T, ? extends Function<? super U, ? extends Function<? super V, ? extends Function<? super W, ? extends R>>>> f) {
+    requireNonNull(f, "f");
+    return t -> f.apply(t._1()).apply(t._2()).apply(t._3()).apply(t._4());
+  }
+
+  public static <T, U, V, W, R> Fn<Quad<T, U, V, W>, R> uncurryQuad(
+      final QuadFn<? super T, ? super U, ? super V, ? super W, ? extends R> f) {
+    requireNonNull(f, "f");
+    return q -> f.apply4(q._1(), q._2(), q._3(), q._4());
   }
 
   /** Curried to {@link BiFunction}.
@@ -81,6 +107,7 @@ public final class Functions {
    * @see #toBiFunction2(Function) */
   public static <T, U, R> BiFn<T, U, R> toBiFunction(
       final Function<T, ? extends Function<? super U, ? extends R>> f) {
+    requireNonNull(f, "f");
     return (t, u) -> f.apply(t).apply(u);
   }
 
@@ -89,32 +116,68 @@ public final class Functions {
    * @see #toBiFunction(Function) */
   public static <T, U, R> BiFn<T, U, R> toBiFunction2(
       final Function<? super Entry<T, U>, ? extends R> f) {
+    requireNonNull(f, "f");
     return (t, u) -> f.apply(toPair(t, u));
   }
 
   public static <T, R> Supplier<R> setFirst(final Function<? super T, ? extends R> f, final T first) {
+    requireNonNull(f, "f");
     return () -> f.apply(first);
   }
 
   public static <T, U, R> Fn<U, R> setFirst(final BiFunction<? super T, ? super U, ? extends R> f,
       final T first) {
+    requireNonNull(f, "f");
     return snd -> f.apply(first, snd);
+  }
+
+  public static <T, U, V, R> BiFn<U, V, R> setFirst(
+      final TriFn<? super T, ? super U, ? super V, ? extends R> f, final T first) {
+    requireNonNull(f, "f");
+    return (snd, trd) -> f.apply3(first, snd, trd);
+  }
+
+  public static <T, U, V, W, R> TriFn<U, V, W, R> setFirst(
+      final QuadFn<? super T, ? super U, ? super V, ? super W, ? extends R> f, final T first) {
+    requireNonNull(f, "f");
+    return (snd, trd, fth) -> f.apply4(first, snd, trd, fth);
   }
 
   public static <T, U, R> Fn<T, R> setSecond(final BiFunction<? super T, ? super U, ? extends R> f,
       final U second) {
+    requireNonNull(f, "f");
     return first -> f.apply(first, second);
   }
 
   public static <T, U, R> Fn<T, R> setSecond(
       final Function<? super T, ? extends Function<? super U, ? extends R>> f, final U second) {
+    requireNonNull(f, "f");
     return first -> f.apply(first).apply(second);
   }
 
-  public static <T, U, V, R> Fn<T, Fn<U, R>> setThird(
+  public static <T, U, V, R> Fn2<T, U, R> setThird(
       final Function<? super T, ? extends Function<? super U, ? extends Function<? super V, ? extends R>>> f,
           final V third) {
+    requireNonNull(f, "f");
     return first -> second -> f.apply(first).apply(second).apply(third);
+  }
+
+  public static <T, U, V, R> BiFn<T, U, R> setThird(final TriFn<T, U, V, R> f, final V third) {
+    requireNonNull(f, "f");
+    return (first, second) -> f.apply3(first, second, third);
+  }
+
+  public static <T, U, V, W, R> Fn3<T, U, V, R> setFourth(
+      final Function<? super T, ? extends Function<? super U, ? extends Function<? super V, ? extends Function<? super W, ? extends R>>>> f,
+          final W fourth) {
+    requireNonNull(f, "f");
+    return first -> second -> third -> f.apply(first).apply(second).apply(third).apply(fourth);
+  }
+
+  public static <T, U, V, W, R> TriFn<T, U, V, R> setFourth(final QuadFn<T, U, V, W, R> f,
+      final W fourth) {
+    requireNonNull(f, "f");
+    return (first, second, third) -> f.apply4(first, second, third, fourth);
   }
 
   @SuppressWarnings("unused")
@@ -139,8 +202,8 @@ public final class Functions {
         a, b); // both lists.
   }
 
-  static <A, B, PAIR> List<PAIR> zip(final Supplier<? extends List<PAIR>> supplier,
-      final BiFunction<? super A, ? super B, ? extends PAIR> zipper, //
+  static <A, B, TRIPLET> List<TRIPLET> zip(final Supplier<? extends List<TRIPLET>> supplier,
+      final BiFunction<? super A, ? super B, ? extends TRIPLET> zipper, //
       final Iterable<? extends A> a, final Iterable<? extends B> b) {
     requireNonNull(supplier, "supplier");
     requireNonNull(zipper, "zipper");
@@ -148,9 +211,74 @@ public final class Functions {
     requireNonNull(b, "b");
     final Iterator<? extends A> itrA = a.iterator();
     final Iterator<? extends B> itrB = b.iterator();
-    final List<PAIR> result = supplier.get();
+    final List<TRIPLET> result = supplier.get();
     while (itrA.hasNext() && itrB.hasNext())
       result.add(zipper.apply(itrA.next(), itrB.next()));
+    return result;
+  }
+
+  @SuppressWarnings("unused")
+  public static <A, B, C> List<Triplet<A, B, C>> zip(final Collection<? extends A> a,
+      final Collection<? extends B> b, final Collection<? extends C> c) {
+    requireNonNull(a, "a");
+    requireNonNull(b, "b");
+    requireNonNull(c, "c");
+    final int min = IntStream.of(a.size(), b.size(), c.size()).min().getAsInt();
+    return zip(//
+        () -> new ArrayList<Triplet<A, B, C>>(min),// creates new List
+        Triplet::of, // Creates Entry of 3 elements
+        a, b, c); // 3 lists.
+  }
+
+  static <A, B, C, TRIPLET> List<TRIPLET> zip(final Supplier<? extends List<TRIPLET>> supplier,
+      final TriFn<? super A, ? super B, ? super C, ? extends TRIPLET> zipper, //
+      final Iterable<? extends A> a, final Iterable<? extends B> b, final Iterable<? extends C> c) {
+    requireNonNull(supplier, "supplier");
+    requireNonNull(zipper, "zipper");
+    requireNonNull(a, "a");
+    requireNonNull(b, "b");
+    requireNonNull(c, "c");
+    final Iterator<? extends A> itrA = a.iterator();
+    final Iterator<? extends B> itrB = b.iterator();
+    final Iterator<? extends C> itrC = c.iterator();
+    final List<TRIPLET> result = supplier.get();
+    while (itrA.hasNext() && itrB.hasNext() && itrC.hasNext())
+      result.add(zipper.apply3(itrA.next(), itrB.next(), itrC.next()));
+    return result;
+  }
+
+  @SuppressWarnings("unused")
+  public static <A, B, C, D> List<Quad<A, B, C, D>> zip(final Collection<? extends A> a,
+      final Collection<? extends B> b, final Collection<? extends C> c,
+      final Collection<? extends D> d) {
+    requireNonNull(a, "a");
+    requireNonNull(b, "b");
+    requireNonNull(c, "c");
+    requireNonNull(d, "d");
+    final int min = IntStream.of(a.size(), b.size(), c.size(), d.size()).min().getAsInt();
+    return zip(//
+        () -> new ArrayList<Quad<A, B, C, D>>(min),// creates new List
+        Quad::of, // Creates Entry of 4 elements
+        a, b, c, d); // 4 lists.
+  }
+
+  static <A, B, C, D, QUAD> List<QUAD> zip(
+      final Supplier<? extends List<QUAD>> supplier,
+          final QuadFn<? super A, ? super B, ? super C, ? super D, ? extends QUAD> zipper, //
+          final Iterable<? extends A> a, final Iterable<? extends B> b, final Iterable<? extends C> c,
+          final Iterable<? extends D> d) {
+    requireNonNull(supplier, "supplier");
+    requireNonNull(zipper, "zipper");
+    requireNonNull(a, "a");
+    requireNonNull(b, "b");
+    requireNonNull(c, "c");
+    final Iterator<? extends A> itrA = a.iterator();
+    final Iterator<? extends B> itrB = b.iterator();
+    final Iterator<? extends C> itrC = c.iterator();
+    final Iterator<? extends D> itrD = d.iterator();
+    final List<QUAD> result = supplier.get();
+    while (itrA.hasNext() && itrB.hasNext() && itrC.hasNext() && itrD.hasNext())
+      result.add(zipper.apply4(itrA.next(), itrB.next(), itrC.next(), itrD.next()));
     return result;
   }
 
@@ -164,6 +292,42 @@ public final class Functions {
     pairs.forEach(p -> {
       a.add(p.getKey());
       b.add(p.getValue());
+    });
+    return result;
+  }
+
+  public static <A, B, C> Triplet<List<A>, List<B>, List<C>> unzip3(
+      final List<? extends Triplet<A, B, C>> triplets) {
+    requireNonNull(triplets, "triplets");
+    final int size = triplets.size();
+    final ArrayList<A> a = new ArrayList<>(size);
+    final ArrayList<B> b = new ArrayList<>(size);
+    final ArrayList<C> c = new ArrayList<>(size);
+    final Triplet<List<A>, List<B>, List<C>> result = Triplet.of(a, b, c);
+
+    triplets.forEach(p -> {
+      a.add(p._1());
+      b.add(p._2());
+      c.add(p._3());
+    });
+    return result;
+  }
+
+  public static <A, B, C, D> Quad<List<A>, List<B>, List<C>, List<D>> unzip4(
+      final List<? extends Quad<A, B, C, D>> quads) {
+    requireNonNull(quads, "quads");
+    final int size = quads.size();
+    final ArrayList<A> a = new ArrayList<>(size);
+    final ArrayList<B> b = new ArrayList<>(size);
+    final ArrayList<C> c = new ArrayList<>(size);
+    final ArrayList<D> d = new ArrayList<>(size);
+    final Quad<List<A>, List<B>, List<C>, List<D>> result = Quad.of(a, b, c, d);
+
+    quads.forEach(p -> {
+      a.add(p._1());
+      b.add(p._2());
+      c.add(p._3());
+      d.add(p._4());
     });
     return result;
   }
@@ -205,6 +369,30 @@ public final class Functions {
     return (t, u) -> cache.computeIfAbsent(toPair(t, u), e -> f.apply(t, u));
   }
 
+  public static <T, U, V, R> TriFn<T, U, V, R> cached(final TriFn<T, U, V, R> f) {
+    return cached(f, ConcurrentHashMap::new);
+  }
+
+  public static <T, U, V, R> TriFn<T, U, V, R> cached(final TriFn<T, U, V, R> f,
+      final Supplier<Map<Triplet<T, U, V>, R>> supplier) {
+    requireNonNull(f, "f");
+    requireNonNull(supplier, "supplier");
+    final Map<Triplet<T, U, V>, R> cache = supplier.get();
+    return (t, u, v) -> cache.computeIfAbsent(Triplet.of(t, u, v), e -> f.apply3(t, u, v));
+  }
+
+  public static <T, U, V, W, R> QuadFn<T, U, V, W, R> cached(final QuadFn<T, U, V, W, R> f) {
+    return cached(f, ConcurrentHashMap::new);
+  }
+
+  public static <T, U, V, W, R> QuadFn<T, U, V, W, R> cached(final QuadFn<T, U, V, W, R> f,
+      final Supplier<Map<Quad<T, U, V, W>, R>> supplier) {
+    requireNonNull(f, "f");
+    requireNonNull(supplier, "supplier");
+    final Map<Quad<T, U, V, W>, R> cache = supplier.get();
+    return (t, u, v, w) -> cache.computeIfAbsent(Quad.of(t, u, v, w), e -> f.apply4(t, u, v, w));
+  }
+
   public static <T, R> Fn<Supplier<T>, R> lazy(final Function<T, R> f) {
     requireNonNull(f, "f");
     return s -> f.apply(s.get());
@@ -220,9 +408,9 @@ public final class Functions {
     return t -> f.apply(() -> t);
   }
 
-  public static <T, U, R> Fn<T, Fn<U, R>> eager(final BiFunction<Supplier<T>, Supplier<U>, R> f) {
+  public static <T, U, R> BiFn<T, U, R> eager(final BiFunction<Supplier<T>, Supplier<U>, R> f) {
     requireNonNull(f, "f");
-    return t -> u -> f.apply(() -> t, () -> u);
+    return (t, u) -> f.apply(() -> t, () -> u);
   }
 
   public static <T> void forEach(final T head, final Function<T, T> next, final Consumer<T> action) {

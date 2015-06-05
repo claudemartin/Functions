@@ -22,16 +22,15 @@ import ch.claude_martin.function.tuple.PairImpl.UniPairImpl;
  *          The type of the first element (key).
  * @param <V>
  *          The type of the second element (value). */
-public interface Pair<K, V> extends Entry<K, V>, Comparable<Entry<K, V>>, Serializable {
+public interface Pair<K, V> extends Entry<K, V>, Tuple<Entry<K, V>>, Serializable {
   @SuppressWarnings({ "rawtypes" })
-  final static Comparator<Pair> comparator = //
-  Comparator.<Pair, Comparable> comparing(
-      e -> (Comparable) e.getKey(),
-      Comparator.nullsFirst(Comparator.naturalOrder()))//
+  final static Comparator<Pair> COMPARATOR = //
+  Comparator
+  .<Pair, Comparable> comparing(
+      e -> (Comparable) e.getKey(), NULLS_FIRST)
       .thenComparing(
-          Comparator.comparing(e -> (Comparable) e
-              .getValue(), Comparator
-              .nullsFirst(Comparator.naturalOrder())));
+          Comparator.comparing(
+              e -> (Comparable) e.getValue(), NULLS_FIRST));
 
   @SuppressWarnings("unchecked")
   public static <K, V> Pair<K, V> of(final Entry<? extends K, ? extends V> e) {
@@ -61,7 +60,7 @@ public interface Pair<K, V> extends Entry<K, V>, Comparable<Entry<K, V>>, Serial
    *         equal to, or greater than the second. */
   @SuppressWarnings({ "unchecked", "rawtypes" })
   public static int compare(final Entry a, final Entry b) {
-    return Objects.compare(a, b, (Comparator) comparator);
+    return Objects.compare(a, b, (Comparator) COMPARATOR);
   }
 
   public static int hash(final Entry<?, ?> e) {
@@ -81,6 +80,27 @@ public interface Pair<K, V> extends Entry<K, V>, Comparable<Entry<K, V>>, Serial
 
   public default V _2() {
     return this.getValue();
+  }
+
+  @Override
+  public default int arity() {
+    return 2;
+  }
+
+  @Override
+  public default Object get(final int index) {
+    switch (index) {
+    case 0:
+      return _1();
+    case 1:
+      return _2();
+    }
+    throw new IndexOutOfBoundsException();
+  }
+
+  @Override
+  public default Object[] toArray() {
+    return new Object[] { _1(), _2() };
   }
 
   @Override
@@ -116,7 +136,7 @@ public interface Pair<K, V> extends Entry<K, V>, Comparable<Entry<K, V>>, Serial
       return new PairImpl.UniPairImpl<>(t1, t2);
     }
 
-    public default <R> Pair<R, R> map(final Function<? super T, ? extends R> f) {
+    public default <R> UniPair<R> map(final Function<? super T, ? extends R> f) {
       requireNonNull(f, "f");
       return of(f.apply(this.getKey()), f.apply(getValue()));
     }

@@ -37,6 +37,8 @@ class PairImpl<K, V> implements Pair<K, V> {
 
   @Override
   public boolean equals(final Object o) {
+    if (this == o)
+      return true;
     if (!(o instanceof Entry))
       return false;
     final Entry<?, ?> e = (Entry<?, ?>) o;
@@ -56,6 +58,6 @@ class PairImpl<K, V> implements Pair<K, V> {
   @SuppressWarnings({ "unchecked", "rawtypes" })
   @Override
   public int compareTo(final Entry<K, V> o) {
-    return Objects.compare(this, o, (Comparator) comparator);
+    return Objects.compare(this, o, (Comparator) COMPARATOR);
   }
 }

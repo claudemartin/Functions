@@ -1,5 +1,7 @@
 package ch.claude_martin.function;
 
+import ch.claude_martin.function.tuple.Triplet;
+
 
 @FunctionalInterface
 public interface TriFn<T, U, V, R> {
@@ -16,6 +18,15 @@ public interface TriFn<T, U, V, R> {
 
   public default Fn3<T, U, V, R> curry() {
     return Functions.curry(this);
+  }
+
+  /** Converts {@code Triplet<T,U,V,R>} to {@code Fn<Triplet<T,U,V>,R>} */
+  public default Fn<Triplet<T, U, V>, R> uncurry() {
+    return Functions.uncurryTri(this);
+  }
+
+  public default TriFn<T, U, V, R> cached() {
+    return Functions.cached(this);
   }
 
 }

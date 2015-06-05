@@ -72,8 +72,9 @@ public interface BiFn<T, U, R> extends BiFunction<T, U, R> {
     return Functions.curry(this);
   }
 
+  /** Converts {@code Entry<T,U,R>} to {@code Fn<Entry<T,U>,R>} */
   public default Fn<Entry<T, U>, R> uncurry() {
-    return Functions.uncurry2(this);
+    return Functions.uncurryBi(this);
   }
 
   public default BiFn<T, U, R> sneaky() {

@@ -1,5 +1,7 @@
 package ch.claude_martin.function;
 
+import ch.claude_martin.function.tuple.Quad;
+
 @FunctionalInterface
 public interface QuadFn<T, U, V, W, R> {
 
@@ -19,6 +21,15 @@ public interface QuadFn<T, U, V, W, R> {
 
   public default Fn4<T, U, V, W, R> curry() {
     return Functions.curry(this);
+  }
+
+  /** Converts {@code Quad<T,U,V,W,R>} to {@code Fn<Quad<T,U,V,W>,R>} */
+  public default Fn<Quad<T, U, V, W>, R> uncurry() {
+    return q -> this.apply4(q._1(), q._2(), q._3(), q._4());
+  }
+
+  public default QuadFn<T, U, V, W, R> cached() {
+    return Functions.cached(this);
   }
 
 }
