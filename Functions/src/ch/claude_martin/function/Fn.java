@@ -8,16 +8,14 @@ import java.util.Objects;
 import java.util.concurrent.locks.Lock;
 import java.util.function.*;
 
-/**
- * Functional interface like {@link Function} but with shorter name and some more methods.
+/** Functional interface like {@link Function} but with shorter name and some more methods.
  * 
  * @author Claude martin
  * @param <T>
  *          the type of the input to the function
  * @param <R>
  *          the type of the result of the function
- * @see Function
- */
+ * @see Function */
 @FunctionalInterface
 public interface Fn<T, R> extends Function<T, R> {
 
@@ -99,22 +97,10 @@ public interface Fn<T, R> extends Function<T, R> {
     return this::apply;
   }
 
-  /** This only works if R extends {@link Function}. */
-  @SuppressWarnings("unchecked")
-  public default <U> Fn<Entry<T, U>, R> uncurry() {
-    return Functions.uncurry((Function<T, Function<U, R>>) this);
-  }
-
   /** This only works if {@code T extends Entry<A,B>}. */
   @SuppressWarnings("unchecked")
-  public default <A, B> Fn<A, Fn<B, R>> curry() {
+  public default <A, B> Fn2<A, B, R> curry() {
     return Functions.curry((Function<Entry<A, B>, R>) this);
-  }
-
-  /** This only works if R extends {@link Function}. */
-  @SuppressWarnings("unchecked")
-  public default <U> BiFunction<T, U, R> toBiFunction() {
-    return Functions.toBiFunction((Function<T, Function<U, R>>) this);
   }
 
   /** This only works if {@code T extends Entry<A,B>}. */
@@ -127,29 +113,23 @@ public interface Fn<T, R> extends Function<T, R> {
     return this;
   }
 
-  /**
-   * Creates a function that will have a name so that stack traces are easier to read. This must be
-   * used after any other exceptions-related modifications of the function.
-   */
+  /** Creates a function that will have a name so that stack traces are easier to read. This must be
+   * used after any other exceptions-related modifications of the function. */
   public default Fn<T, R> named(final String name) {
     return Exceptions.named(this, name);
   }
 
-  /**
-   * Returns value if any exception is thrown or if result is null.
+  /** Returns value if any exception is thrown or if result is null.
    * 
    * @param value
    *          Value to be used on exception or if result us null
-   * @return Function what never fails.
-   */
+   * @return Function what never fails. */
   public default Fn<T, R> orElse(final R value) {
     requireNonNull(value, "value");
     return Exceptions.orElse(this::apply, value).andThen((final R r) -> r == null ? value : r);
   }
 
-  /**
-   * Returns null if any exception is thrown.
-   */
+  /** Returns null if any exception is thrown. */
   public default Fn<T, R> orNull() {
     return Exceptions.orNull(this::apply);
   }
@@ -199,12 +179,10 @@ public interface Fn<T, R> extends Function<T, R> {
     return Functions.nonNull(this);
   }
 
-  /**
-   * Applies t to this and returns a pair of t and the result.
+  /** Applies t to this and returns a pair of t and the result.
    * <p>
    * Can be used to map to pairs: <br/>
-   * {@code coll.stream().map(f::paired); 
-   */
+   * {@code coll.stream().map(f::paired);  */
   public default Pair<T, R> paired(final T t) {
     return Pair.of(t, this.apply(t));
   }
@@ -212,5 +190,6 @@ public interface Fn<T, R> extends Function<T, R> {
   public static <T> Fn<T, T> identity() {
     return t -> t;
   }
+
 
 }

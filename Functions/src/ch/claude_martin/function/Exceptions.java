@@ -51,116 +51,7 @@ public final class Exceptions {
 
   }
 
-  @FunctionalInterface
-  public static interface RiskyFn<T, R> extends Fn<T, R> {
-
-    /** Tries to invoke this function but throws a {@link SneakyException} if execution fails. */
-    @Override
-    public default R apply(final T t) {
-      try {
-        return this.tryApply(t);
-      } catch (final Throwable x) {
-        throw SneakyException.of(x);
-      }
-    };
-
-    public abstract R tryApply(final T t) throws Throwable;
-
-    /** Converts a checked exception to an unchecked (sneaky) exception. */
-    @Override
-    public default Fn<T, R> sneaky() {
-      return Exceptions.sneaky(this);
-    }
-
-    @Override
-    public default Fn<T, R> orElse(final R value) {
-      requireNonNull(value, "value");
-      return Exceptions.orElse(this, value).andThen((final R r) -> r == null ? value : r);
-    }
-
-    public default Fn<T, R> orElse(final R ifNull, final R ifException) {
-      return Exceptions.orElse(this, ifNull, ifException);
-    }
-
-    public default Fn<T, R> orElseGet(final Supplier<R> ifNull,
-        final Function<Throwable, R> ifException) {
-      return Exceptions.orElseGet(this, ifNull, ifException);
-    }
-
-    @Override
-    public default Fn<T, R> orNull() {
-      return Exceptions.orNull(this);
-    }
-
-    public default Fn<T, R> retry() {
-      return Exceptions.retry(this);
-    }
-
-    public default Fn<T, R> log(final Consumer<Throwable> logger) {
-      return Exceptions.log(this, logger);
-    }
-
-    public default Fn<T, Maybe<R>> toMaybe(final RiskyFn<T, R> f) {
-      return Exceptions.toMaybe(this);
-    }
-
-  }
-
-  @FunctionalInterface
-  public static interface RiskyBiFn<T, U, R> extends BiFn<T, U, R> {
-
-    /** Tries to invoke this function but throws a {@link RuntimeException} if execution fails. */
-    @Override
-    public default R apply(final T t, final U u) {
-      try {
-        return this.tryApply(t, u);
-      } catch (final Throwable x) {
-        throw SneakyException.of(x);
-      }
-    };
-
-    public abstract R tryApply(final T t, final U u) throws Throwable;
-
-    @Override
-    public default BiFn<T, U, R> sneaky() {
-      return Exceptions.sneaky(this);
-    }
-
-    @Override
-    public default BiFn<T, U, R> orElse(final R value) {
-      requireNonNull(value, "value");
-      return Exceptions.orElse(this, value).andThen((final R r) -> r == null ? value : r);
-    }
-
-    public default BiFn<T, U, R> orElse(final R ifNull, final R ifException) {
-      return Exceptions.orElse(this, ifNull, ifException);
-    }
-
-    public default BiFn<T, U, R> orElseGet(final Supplier<R> ifNull,
-        final Function<Throwable, R> ifException) {
-      return Exceptions.orElseGet(this, ifNull, ifException);
-    }
-
-    @Override
-    public default BiFn<T, U, R> orNull() {
-      return Exceptions.orNull(this);
-    }
-
-    public default BiFn<T, U, R> log(final Consumer<Throwable> logger) {
-      return Exceptions.log(this, logger);
-    }
-
-    public default BiFn<T, U, Maybe<R>> toMaybe(final RiskyBiFn<T, U, R> f) {
-      return Exceptions.toMaybe(this);
-    }
-
-    public default BiFn<T, U, R> named(final String name) {
-      return Exceptions.named(this, name);
-    }
-
-  }
-
-  private static String getMessage(Throwable e, String name) {
+  private static String getMessage(final Throwable e, final String name) {
     return String.format("'%s' could not be executed because of: %s", e, name);
   }
 
@@ -215,7 +106,7 @@ public final class Exceptions {
     requireNonNull(f, "f");
     return (t, u) -> {
       try {
-        return f.tryApply(t, u);
+        return f.tryApply2(t, u);
       } catch (final Throwable e) {
         throw SneakyException.of(e);
       }
@@ -241,7 +132,7 @@ public final class Exceptions {
     requireNonNull(logger, "logger");
     return (t, u) -> {
       try {
-        return f.tryApply(t, u);
+        return f.tryApply2(t, u);
       } catch (final Throwable e) {
         logger.accept(e);
         throw SneakyException.of(e);
@@ -268,7 +159,7 @@ public final class Exceptions {
     requireNonNull(f, "f");
     return (t, u) -> {
       try {
-        return f.tryApply(t, u);
+        return f.tryApply2(t, u);
       } catch (final Throwable e) {
         return value;
       }
@@ -294,7 +185,7 @@ public final class Exceptions {
     requireNonNull(f, "f");
     return (t, u) -> {
       try {
-        final R result = f.tryApply(t, u);
+        final R result = f.tryApply2(t, u);
         if (result == null)
           return ifNull;
         return result;
@@ -332,7 +223,7 @@ public final class Exceptions {
     requireNonNull(supplier, "supplier");
     return (t, u) -> {
       try {
-        return f.tryApply(t, u);
+        return f.tryApply2(t, u);
       } catch (final Throwable e) {
         return supplier.get();
       }
@@ -363,7 +254,7 @@ public final class Exceptions {
     requireNonNull(ifException, "ifException");
     return (t, u) -> {
       try {
-        final R result = f.tryApply(t, u);
+        final R result = f.tryApply2(t, u);
         if (result == null)
           return ifNull.get();
         return result;
@@ -388,7 +279,7 @@ public final class Exceptions {
     requireNonNull(f, "f");
     return (t, u) -> {
       try {
-        return Optional.ofNullable(f.tryApply(t, u));
+        return Optional.ofNullable(f.tryApply2(t, u));
       } catch (final Throwable e) {
         return Optional.empty();
       }
@@ -410,7 +301,7 @@ public final class Exceptions {
     requireNonNull(f, "f");
     return (t, u) -> {
       try {
-        return Maybe.ofValue(f.tryApply(t, u));
+        return Maybe.ofValue(f.tryApply2(t, u));
       } catch (final Throwable e) {
         return Maybe.ofException(e);
       }
@@ -432,7 +323,7 @@ public final class Exceptions {
     requireNonNull(f, "f");
     return (t, u) -> {
       try {
-        return f.tryApply(t, u);
+        return f.tryApply2(t, u);
       } catch (final Throwable e) {
         return null;
       }
@@ -461,7 +352,7 @@ public final class Exceptions {
         try {
           if (thread.isInterrupted())
             throw new RuntimeException("Thread was interrupted", new InterruptedException());
-          return f.tryApply(t, u);
+          return f.tryApply2(t, u);
         } catch (final Throwable e) {
         }
     };

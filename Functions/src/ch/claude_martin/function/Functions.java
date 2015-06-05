@@ -49,15 +49,24 @@ public final class Functions {
     return Pair.of(k, v);
   }
 
-  public static <T, U, R> Fn<T, Fn<U, R>> curry(final Function<Entry<T, U>, R> f) {
+  public static <T, U, R> Fn2<T, U, R> curry(final Function<Entry<T, U>, R> f) {
     return t -> u -> f.apply(toPair(t, u));
   }
 
-  public static <T, U, R> Fn<T, Fn<U, R>> curry(final BiFunction<T, U, R> f) {
+  public static <T, U, R> Fn2<T, U, R> curry(final BiFunction<T, U, R> f) {
     return t -> u -> f.apply(t, u);
   }
 
-  public static <T, U, R> Fn<Entry<T, U>, R> uncurry(final Function<T, Function<U, R>> f) {
+  public static <T, U, V, R> Fn3<T, U, V, R> curry(final TriFn<T, U, V, R> f) {
+    return t -> u -> v -> f.apply3(t, u, v);
+  }
+
+  public static <T, U, V, W, R> Fn4<T, U, V, W, R> curry(final QuadFn<T, U, V, W, R> f) {
+    return t -> u -> v -> w -> f.apply4(t, u, v, w);
+  }
+
+  public static <T, U, R> Fn<Entry<? extends T, ? extends U>, R> uncurry(
+      final Function<T, ? extends Function<U, R>> f) {
     return e -> f.apply(e.getKey()).apply(e.getValue());
   }
 
@@ -70,7 +79,8 @@ public final class Functions {
    * 
    * @see #toBiFunction2(Function)
    */
-  public static <T, U, R> BiFunction<T, U, R> toBiFunction(final Function<T, Function<U, R>> f) {
+  public static <T, U, R> BiFn<T, U, R> toBiFunction(
+      final Function<T, ? extends Function<U, R>> f) {
     return (t, u) -> f.apply(t).apply(u);
   }
 

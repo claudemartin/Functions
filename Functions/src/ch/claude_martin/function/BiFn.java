@@ -8,8 +8,6 @@ import java.util.Objects;
 import java.util.concurrent.locks.Lock;
 import java.util.function.*;
 
-import ch.claude_martin.function.Exceptions.RiskyBiFn;
-
 @FunctionalInterface
 public interface BiFn<T, U, R> extends BiFunction<T, U, R> {
 
@@ -49,6 +47,17 @@ public interface BiFn<T, U, R> extends BiFunction<T, U, R> {
     return f::applyAsLong;
   }
 
+  public abstract R apply2(final T t, final U u);
+
+  @Override
+  public default R apply(final T t, final U u) {
+    return this.apply2(t, u);
+  }
+
+  public default Fn<U, R> apply1(final T t) {
+    return u -> this.apply2(t, u);
+  }
+
   public default R applyPair(final Entry<? extends T, ? extends U> pair) {
     requireNonNull(pair, "pair");
     return this.apply(pair.getKey(), pair.getValue());
@@ -59,7 +68,7 @@ public interface BiFn<T, U, R> extends BiFunction<T, U, R> {
     return this::apply;
   }
 
-  public default Fn<T, Fn<U, R>> curry() {
+  public default Fn2<T, U, R> curry() {
     return Functions.curry(this);
   }
 
@@ -80,14 +89,15 @@ public interface BiFn<T, U, R> extends BiFunction<T, U, R> {
    */
   public default BiFn<T, U, R> orElse(final R value) {
     requireNonNull(value, "value");
-    return Exceptions.orElse(this::apply, value).andThen((final R r) -> r == null ? value : r);
+    return Exceptions.orElse(this::apply2, value).andThen(
+        (final R r) -> r == null ? value : r);
   }
 
   /**
    * Returns null if any exception is thrown.
    */
   public default BiFn<T, U, R> orNull() {
-    return Exceptions.orNull(this::apply);
+    return Exceptions.orNull(this::apply2);
   }
 
   @Override
