@@ -5,7 +5,7 @@ import java.util.Map.Entry;
 /** {@code f : T -> U -> R } */
 @FunctionalInterface
 public interface Fn2<T, U, R> extends Fn<T, Fn<U, R>> {
-
+  /** @see BiFn#curry() */
   public static <T, U, R> Fn2<T, U, R> of(final BiFn<T, U, R> f) {
     return Functions.curry(f::apply2);
   }

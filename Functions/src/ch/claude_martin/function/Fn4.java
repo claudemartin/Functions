@@ -5,6 +5,7 @@ import ch.claude_martin.function.tuple.Quad;
 /** {@code f : T -> U -> V -> W -> R } */
 @FunctionalInterface
 public interface Fn4<T, U, V, W, R> extends Fn<T, Fn3<U, V, W, R>> {
+  /** @see QuadFn#curry() */
   public static <T, U, V, W, R> Fn4<T, U, V, W, R> of(final QuadFn<T, U, V, W, R> f) {
     return Functions.curry(f::apply4);
   }

@@ -5,7 +5,7 @@ import ch.claude_martin.function.tuple.Triplet;
 /** {@code f : T -> U -> V -> R } */
 @FunctionalInterface
 public interface Fn3<T, U, V, R> extends Fn<T, Fn2<U, V, R>> {
-
+  /** @see TriFn#curry() */
   public static <T, U, V, R> Fn3<T, U, V, R> of(final TriFn<T, U, V, R> f) {
     return Functions.curry(f::apply3);
   }
