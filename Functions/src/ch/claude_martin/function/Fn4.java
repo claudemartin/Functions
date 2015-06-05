@@ -29,4 +29,16 @@ public interface Fn4<T, U, V, W, R> extends Fn<T, Fn3<U, V, W, R>> {
   public default Fn<Quad<T, U, V, W>, R> uncurry() {
     return Functions.uncurry4(this);
   }
+
+  public default Fn3<T, V, W, R> set2nd(final U second) {
+    return first -> this.apply(first).apply(second);
+  }
+
+  public default Fn3<T, U, W, R> set3rd(final V third) {
+    return first -> second -> this.apply(first).apply(second).apply(third);
+  }
+
+  public default Fn3<T, U, V, R> set4th(final W fourth) {
+    return first -> second -> third -> this.apply(first).apply(second).apply(third).apply(fourth);
+  }
 }

@@ -32,4 +32,16 @@ public interface QuadFn<T, U, V, W, R> {
     return Functions.cached(this);
   }
 
+  public default TriFn<T, V, W, R> set2(final U second) {
+    return Functions.set2nd(this, second);
+  }
+
+  public default TriFn<T, U, W, R> set3(final V third) {
+    return Functions.set3rd(this, third);
+  }
+
+  public default TriFn<T, U, V, R> set4(final W fourth) {
+    return Functions.set4th(this, fourth);
+  }
+
 }

@@ -29,4 +29,12 @@ public interface TriFn<T, U, V, R> {
     return Functions.cached(this);
   }
 
+  public default BiFn<T, V, R> set2(final U second) {
+    return Functions.set2nd(this, second);
+  }
+
+  public default BiFn<T, U, R> set3(final V third) {
+    return Functions.set3rd(this, third);
+  }
+
 }

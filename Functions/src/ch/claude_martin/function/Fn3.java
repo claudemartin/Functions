@@ -27,4 +27,13 @@ public interface Fn3<T, U, V, R> extends Fn<T, Fn2<U, V, R>> {
     return this::apply3;
   }
 
+
+  public default Fn2<T, V, R> set2nd(final U second) {
+    return first -> this.apply(first).apply(second);
+  }
+
+  public default Fn2<T, U, R> set3rd(final V third) {
+    return first -> second -> this.apply(first).apply(second).apply(third);
+  }
+
 }

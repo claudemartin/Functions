@@ -24,4 +24,8 @@ public interface Fn2<T, U, R> extends Fn<T, Fn<U, R>> {
     return this::apply2;
   }
 
+  public default Fn<T, R> set2nd(final U second) {
+    return first -> this.apply(first).apply(second);
+  }
+
 }

@@ -120,61 +120,78 @@ public final class Functions {
     return (t, u) -> f.apply(toPair(t, u));
   }
 
-  public static <T, R> Supplier<R> setFirst(final Function<? super T, ? extends R> f, final T first) {
+  public static <T, R> Supplier<R> set1st(final Function<? super T, ? extends R> f, final T first) {
     requireNonNull(f, "f");
     return () -> f.apply(first);
   }
 
-  public static <T, U, R> Fn<U, R> setFirst(final BiFunction<? super T, ? super U, ? extends R> f,
+  public static <T, U, R> Fn<U, R> set1st(final BiFunction<? super T, ? super U, ? extends R> f,
       final T first) {
     requireNonNull(f, "f");
     return snd -> f.apply(first, snd);
   }
 
-  public static <T, U, V, R> BiFn<U, V, R> setFirst(
+  public static <T, U, V, R> BiFn<U, V, R> set1st(
       final TriFn<? super T, ? super U, ? super V, ? extends R> f, final T first) {
     requireNonNull(f, "f");
     return (snd, trd) -> f.apply3(first, snd, trd);
   }
 
-  public static <T, U, V, W, R> TriFn<U, V, W, R> setFirst(
+  public static <T, U, V, W, R> TriFn<U, V, W, R> set1st(
       final QuadFn<? super T, ? super U, ? super V, ? super W, ? extends R> f, final T first) {
     requireNonNull(f, "f");
     return (snd, trd, fth) -> f.apply4(first, snd, trd, fth);
   }
 
-  public static <T, U, R> Fn<T, R> setSecond(final BiFunction<? super T, ? super U, ? extends R> f,
+  public static <T, U, R> Fn<T, R> set2nd(final BiFunction<? super T, ? super U, ? extends R> f,
       final U second) {
     requireNonNull(f, "f");
     return first -> f.apply(first, second);
   }
 
-  public static <T, U, R> Fn<T, R> setSecond(
+  public static <T, U, V, R> BiFn<T, V, R> set2nd(
+      final TriFn<? super T, ? super U, ? super V, ? extends R> f, final U second) {
+    requireNonNull(f, "f");
+    return (first, third) -> f.apply3(first, second, third);
+  }
+
+  public static <T, U, V, W, R> TriFn<T, V, W, R> set2nd(
+      final QuadFn<? super T, ? super U, ? super V, ? super W, ? extends R> f, final U second) {
+    requireNonNull(f, "f");
+    return (first, third, fourth) -> f.apply4(first, second, third, fourth);
+  }
+
+  public static <T, U, R> Fn<T, R> set2nd(
       final Function<? super T, ? extends Function<? super U, ? extends R>> f, final U second) {
     requireNonNull(f, "f");
     return first -> f.apply(first).apply(second);
   }
 
-  public static <T, U, V, R> Fn2<T, U, R> setThird(
+  public static <T, U, V, R> Fn2<T, U, R> set3rd(
       final Function<? super T, ? extends Function<? super U, ? extends Function<? super V, ? extends R>>> f,
           final V third) {
     requireNonNull(f, "f");
     return first -> second -> f.apply(first).apply(second).apply(third);
   }
 
-  public static <T, U, V, R> BiFn<T, U, R> setThird(final TriFn<T, U, V, R> f, final V third) {
+  public static <T, U, V, R> BiFn<T, U, R> set3rd(final TriFn<T, U, V, R> f, final V third) {
     requireNonNull(f, "f");
     return (first, second) -> f.apply3(first, second, third);
   }
 
-  public static <T, U, V, W, R> Fn3<T, U, V, R> setFourth(
+  public static <T, U, V, W, R> TriFn<T, U, W, R> set3rd(final QuadFn<T, U, V, W, R> f, final V third) {
+    requireNonNull(f, "f");
+    return (first, second, fourth) -> f.apply4(first, second, third, fourth);
+  }
+
+  public static <T, U, V, W, R> Fn3<T, U, V, R> set4th(
       final Function<? super T, ? extends Function<? super U, ? extends Function<? super V, ? extends Function<? super W, ? extends R>>>> f,
           final W fourth) {
     requireNonNull(f, "f");
     return first -> second -> third -> f.apply(first).apply(second).apply(third).apply(fourth);
   }
 
-  public static <T, U, V, W, R> TriFn<T, U, V, R> setFourth(final QuadFn<T, U, V, W, R> f,
+  public static <T, U, V, W, R> TriFn<T, U, V, R> set4th(final QuadFn<T, U, V, W, R> f,
       final W fourth) {
     requireNonNull(f, "f");
     return (first, second, third) -> f.apply4(first, second, third, fourth);
