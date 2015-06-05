@@ -1,11 +1,29 @@
 package ch.claude_martin.function.tuple;
 
-import java.util.Arrays;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Objects;
+import static java.util.Objects.requireNonNull;
+
+import java.util.*;
 
 public interface Tuple<T> extends Comparable<T> {
+
+  public static Tuple<?> of(final Object... elements) {
+    requireNonNull(elements, "elements");
+    final int arity = elements.length;
+    switch (arity) {
+    case 2:
+      return Pair.of(elements[0], elements[1]);
+    case 3:
+      return Triplet.of(elements[0], elements[1], elements[2]);
+    case 4:
+      return Quad.of(elements[0], elements[1], elements[2], elements[3]);
+    default:
+      if (arity < 2)
+        throw new IllegalArgumentException("minimum of two elements required");
+      if (arity > 4)
+        throw new IllegalArgumentException("too many elements");
+      throw new IllegalArgumentException();
+    }
+  }
 
   @SuppressWarnings({ "rawtypes" })
   public static final Comparator<Comparable> NULLS_FIRST = Comparator.nullsFirst(Comparator
@@ -34,5 +52,20 @@ public interface Tuple<T> extends Comparable<T> {
     return false;
   }
 
+  public default boolean containsAll(final Collection<?> collection) {
+    requireNonNull(collection, "collection");
+    for (final Object value : collection)
+      if (!contains(value))
+        return false;
+    return true;
+  }
+
+  public default int indexOf(final Object element) {
+    final Object[] array = this.toArray();
+    for (int i = 0; i < array.length; i++)
+      if (Objects.equals(array[i], element))
+        return i;
+    return -1;
+  }
 
 }
