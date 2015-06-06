@@ -1,10 +1,12 @@
 package ch.claude_martin.function;
 
+import static ch.claude_martin.function.Exceptions.getCause;
 import static java.util.Objects.requireNonNull;
 
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.locks.Lock;
 import java.util.function.*;
 
@@ -111,31 +113,6 @@ public interface Fn<T, R> extends Function<T, R> {
     return Functions.toBiFunction2((Function<Entry<A, B>, R>) this);
   }
 
-  public default Fn<T, R> sneaky() {
-    return this;
-  }
-
-  /** Creates a function that will have a name so that stack traces are easier to read. This must be
-   * used after any other exceptions-related modifications of the function. */
-  public default Fn<T, R> named(final String name) {
-    return Exceptions.named(this, name);
-  }
-
-  /** Returns value if any exception is thrown or if result is null.
-   * 
-   * @param value
-   *          Value to be used on exception or if result us null
-   * @return Function what never fails. */
-  public default Fn<T, R> orElse(final R value) {
-    requireNonNull(value, "value");
-    return Exceptions.orElse(this::apply, value).andThen((final R r) -> r == null ? value : r);
-  }
-
-  /** Returns null if any exception is thrown. */
-  public default Fn<T, R> orNull() {
-    return Exceptions.orNull(this::apply);
-  }
-
   @Override
   public default <V> Fn<T, V> andThen(final Function<? super R, ? extends V> after) {
     return (final T t) -> after.apply(apply(t));
@@ -187,6 +164,86 @@ public interface Fn<T, R> extends Function<T, R> {
    * {@code coll.stream().map(f::paired);  */
   public default Pair<T, R> paired(final T t) {
     return Pair.of(t, this.apply(t));
+  }
+
+  /** Returns value if any exception is thrown or if result is null.
+   * 
+   * @param value
+   *          Value to be used on exception or if result us null
+   * @return Function what never fails. */
+  public default Fn<T, R> orElse(final R value) {
+    return orElse(value, value);
+  }
+
+  /** Returns null if any exception is thrown. */
+  public default Fn<T, R> orNull() {
+    return this.orElse(null, null);
+  }
+
+  public default Fn<T, R> orElse(final R ifNull, final R ifException) {
+    return orElseGet(() -> ifNull, t -> ifException);
+  }
+
+  public default Fn<T, R> orElseGet(final Supplier<R> ifNull,
+      final Function<Throwable, R> ifException) {
+    return t -> {
+      try {
+        final R result = this.apply(t);
+        if (result == null)
+          return ifNull.get();
+        return result;
+      } catch (final Throwable e) {
+        return ifException.apply(getCause(e));
+      }
+    };
+  }
+
+  public default Fn<T, Maybe<R>> toMaybe() {
+    return t -> {
+      try {
+        return Maybe.ofValue(this.apply(t));
+      } catch (final Throwable e) {
+        return Maybe.ofException(e);
+      }
+    };
+  }
+
+  public default Fn<T, Optional<R>> toOptional() {
+    return t -> {
+      try {
+        return Optional.ofNullable(this.apply(t));
+      } catch (final Throwable e) {
+        return Optional.empty();
+      }
+    };
+  }
+
+  /** Creates a function that will have a name so that stack traces are easier to read. */
+  public default Fn<T, R> named(final String name) {
+    requireNonNull(name, "name");
+    return t -> {
+      try {
+        return this.apply(t);
+      } catch (final Throwable e) {
+        throw new RuntimeException(Exceptions.getMessage(e, name), e);
+      }
+    };
+  }
+
+  public default Fn<T, R> handle(final Consumer<Throwable> handler) {
+    requireNonNull(handler, "handler");
+    return t -> {
+      try {
+        return this.apply(t);
+      } catch (final Throwable e) {
+        handler.accept(getCause(e));
+        throw e;
+      }
+    };
+  }
+
+  public default Fn<T, R> retry() {
+    return Exceptions.retry(this);
   }
 
   public static <T> Fn<T, T> identity() {

@@ -1,5 +1,6 @@
 package ch.claude_martin.function;
 
+import static ch.claude_martin.function.Exceptions.getCause;
 import static java.util.Objects.requireNonNull;
 
 import java.util.Objects;
@@ -8,18 +9,18 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-/**
- * This holds a value (which might be null) or it holds an exception of unknown type.
+import ch.claude_martin.function.Exceptions.SneakyException;
+
+/** This holds a value (which might be null) or it holds an exception of unknown type.
  * 
  * Do not confuse this with {@link Optional}. The methods seem similar, but are different.
  * 
  * @author Claude Martin
  *
- * @param <T>
- */
+ * @param <T> */
 public final class Maybe<T> {
 
-  private final Object object;
+  private final Object  object;
   private final boolean hasValue;
 
   private Maybe(final Object value, final boolean hasValue) {
@@ -39,9 +40,11 @@ public final class Maybe<T> {
     return new Maybe<>(value, true);
   }
 
+  /** Creates a maybe with no value, but an throwable. If the throwable is a {@link SneakyException}
+   * then it's cause is used instead. */
   public static <T> Maybe<T> ofException(final Throwable throwable) {
     requireNonNull(throwable, "throwable");
-    return new Maybe<>(throwable, false);
+    return new Maybe<>(getCause(throwable), false);
   }
 
   @SuppressWarnings("unchecked")
@@ -100,6 +103,22 @@ public final class Maybe<T> {
     } catch (final Throwable t) {
       return new Maybe<>(t, false);
     }
+  }
+
+  public boolean isUnchecked() throws IllegalStateException {
+    if (this.hasValue)
+      throw new IllegalStateException("This Maybe has a value.");
+    return this.object instanceof RuntimeException;
+  }
+
+  public boolean isChecked() throws IllegalStateException {
+    return !this.isUnchecked();
+  }
+
+  public boolean isError() throws IllegalStateException {
+    if (this.hasValue)
+      throw new IllegalStateException("This Maybe has a value.");
+    return !(this.object instanceof Error);
   }
 
   public boolean isPresent() {

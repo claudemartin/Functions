@@ -6,7 +6,6 @@ import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
 /** Closures that throw exceptions. Most predefined functional interfaces do not throw any checked
  * exceptions. These utility methods help using methods that throw checked or unchecked exceptions. */
@@ -14,6 +13,15 @@ public final class Exceptions {
 
   private Exceptions() {
     throw new RuntimeException("Can't create utility class!");
+  }
+
+  static Throwable getCause(final Throwable t) {
+    if (t instanceof SneakyException) {
+      final Throwable cause = t.getCause();
+      if (cause != null)
+        return cause;
+    }
+    return t;
   }
 
   public static class SneakyException extends RuntimeException {
@@ -49,8 +57,8 @@ public final class Exceptions {
 
   }
 
-  private static String getMessage(final Throwable e, final String name) {
-    return String.format("'%s' could not be executed because of: %s", e, name);
+  static String getMessage(final Throwable e, final String name) {
+    return String.format("'%s' could not be executed because of: %s", getCause(e), name);
   }
 
   /** Creates a function that will have a name so that stack traces are easier to read. This must be
@@ -60,77 +68,56 @@ public final class Exceptions {
       try {
         return f.apply(t);
       } catch (final Throwable e) {
-        throw new RuntimeException(getMessage(e, name));
+        throw new RuntimeException(getMessage(e, name), e);
       }
     };
   }
 
-  /** Creates a function that will have a name so that stac ktraces are easier to read. */
+  /** Creates a function that will have a name so that stack traces are easier to read. */
   public static <T, U, R> BiFn<T, U, R> named(
       final BiFunction<? super T, ? super U, ? extends R> f, final String name) {
     return (t, u) -> {
       try {
         return f.apply(t, u);
       } catch (final Throwable e) {
-        throw new RuntimeException(getMessage(e, name));
+        throw new RuntimeException(getMessage(e, name), e);
       }
     };
   }
 
-  /** @see #toSneakyException(Function) */
+  /** Returns the same function, because a risky function is also a sneaky function. Just use
+   * {@link Function#apply} instead of RiskyFn#tryApply. */
   public static <T, R> Fn<T, R> sneaky(final RiskyFn<T, R> f) {
-    return toSneakyException(f);
+    return f;
   }
 
-  /** @see #toSneakyException(BiFunction) */
+  /** Returns the same function, because a risky function is also a sneaky function. Just use
+   * {@link BiFunction#apply} instead of RiskyBiFn#tryApply2. */
   public static <T, U, R> BiFn<T, U, R> sneaky(final RiskyBiFn<T, U, R> f) {
-    return toSneakyException(f);
+    return f;
   }
 
-  public static <T, R> Fn<T, R> toSneakyException(final RiskyFn<T, R> f) {
-    requireNonNull(f, "f");
-    return (t) -> {
-      try {
-        return f.tryApply(t);
-      } catch (final Throwable e) {
-        throw SneakyException.of(e);
-      }
-    };
+  /** Returns the same function, because a risky function is also a sneaky function. Just use
+   * {@link TriFn#apply3} instead of RiskyTriFn#tryApply3. */
+  public static <T, U, V, R> TriFn<T, U, V, R> sneaky(final RiskyTriFn<T, U, V, R> f) {
+    return f;
   }
 
-  public static <T, U, R> BiFn<T, U, R> toSneakyException(final RiskyBiFn<T, U, R> f) {
+  /** Returns the same function, because a risky function is also a sneaky function. Just use
+   * {@link QuadFn#apply4} instead of RiskyQuadFn#tryApply4. */
+  public static <T, U, V, W, R> QuadFn<T, U, V, W, R> sneaky(final RiskyQuadFn<T, U, V, W, R> f) {
+    return f;
+  }
+
+  public static <T, U, R> BiFn<T, U, R> handle(final BiFunction<T, U, R> f,
+      final Consumer<Throwable> handler) {
     requireNonNull(f, "f");
+    requireNonNull(handler, "handler");
     return (t, u) -> {
       try {
-        return f.tryApply2(t, u);
+        return f.apply(t, u);
       } catch (final Throwable e) {
-        throw SneakyException.of(e);
-      }
-    };
-  }
-
-  public static <T, R> Fn<T, R> log(final RiskyFn<T, R> f, final Consumer<Throwable> logger) {
-    requireNonNull(f, "f");
-    requireNonNull(logger, "logger");
-    return (t) -> {
-      try {
-        return f.tryApply(t);
-      } catch (final Throwable e) {
-        logger.accept(e);
-        throw SneakyException.of(e);
-      }
-    };
-  }
-
-  public static <T, U, R> BiFn<T, U, R> log(final RiskyBiFn<T, U, R> f,
-      final Consumer<Throwable> logger) {
-    requireNonNull(f, "f");
-    requireNonNull(logger, "logger");
-    return (t, u) -> {
-      try {
-        return f.tryApply2(t, u);
-      } catch (final Throwable e) {
-        logger.accept(e);
+        handler.accept(e);
         throw SneakyException.of(e);
       }
     };
@@ -138,33 +125,19 @@ public final class Exceptions {
 
   /** Returns the given value if any exception is thrown. This still may return null, if the given
    * function returns null. */
-  public static <T, R> Fn<T, R> orElse(final RiskyFn<T, R> f, final R value) {
+  public static <T, R> Fn<T, R> orElse(final Function<T, R> f, final R value) {
+    return orElse(f, value, value);
+  }
+
+  public static <T, U, R> BiFn<T, U, R> orElse(final BiFunction<T, U, R> f, final R value) {
+    return orElse(f, value, value);
+  }
+
+  public static <T, R> Fn<T, R> orElse(final Function<T, R> f, final R ifNull, final R ifException) {
     requireNonNull(f, "f");
     return (t) -> {
       try {
-        return f.tryApply(t);
-      } catch (final Throwable e) {
-        return value;
-      }
-    };
-  }
-
-  public static <T, U, R> BiFn<T, U, R> orElse(final RiskyBiFn<T, U, R> f, final R value) {
-    requireNonNull(f, "f");
-    return (t, u) -> {
-      try {
-        return f.tryApply2(t, u);
-      } catch (final Throwable e) {
-        return value;
-      }
-    };
-  }
-
-  public static <T, R> Fn<T, R> orElse(final RiskyFn<T, R> f, final R ifNull, final R ifException) {
-    requireNonNull(f, "f");
-    return (t) -> {
-      try {
-        final R result = f.tryApply(t);
+        final R result = f.apply(t);
         if (result == null)
           return ifNull;
         return result;
@@ -174,12 +147,12 @@ public final class Exceptions {
     };
   }
 
-  public static <T, U, R> BiFn<T, U, R> orElse(final RiskyBiFn<T, U, R> f, final R ifNull,
+  public static <T, U, R> BiFn<T, U, R> orElse(final BiFunction<T, U, R> f, final R ifNull,
       final R ifException) {
     requireNonNull(f, "f");
     return (t, u) -> {
       try {
-        final R result = f.tryApply2(t, u);
+        final R result = f.apply(t, u);
         if (result == null)
           return ifNull;
         return result;
@@ -189,104 +162,33 @@ public final class Exceptions {
     };
   }
 
-  public static <T, R> Fn<T, R> orNull(final RiskyFn<T, R> f) {
-    requireNonNull(f, "f");
-    return orElse(f, null);
-  }
-
-  public static <T, U, R> BiFn<T, U, R> orNull(final RiskyBiFn<T, U, R> f) {
-    requireNonNull(f, "f");
-    return orElse(f, null);
-  }
-
-  public static <T, R> Fn<T, R> orElseGet(final RiskyFn<T, R> f, final Supplier<R> supplier) {
-    requireNonNull(f, "f");
-    requireNonNull(supplier, "supplier");
-    return (t) -> {
-      try {
-        return f.tryApply(t);
-      } catch (final Throwable e) {
-        return supplier.get();
-      }
-    };
-  }
-
-  public static <T, U, R> BiFn<T, U, R> orElseGet(final RiskyBiFn<T, U, R> f,
-      final Supplier<R> supplier) {
-    requireNonNull(f, "f");
-    requireNonNull(supplier, "supplier");
-    return (t, u) -> {
-      try {
-        return f.tryApply2(t, u);
-      } catch (final Throwable e) {
-        return supplier.get();
-      }
-    };
-  }
-
-  public static <T, R> Fn<T, R> orElseGet(final RiskyFn<? super T, ? extends R> f,
-      final Supplier<? extends R> ifNull, final Function<? super Throwable, ? extends R> ifException) {
-    requireNonNull(f, "f");
-    requireNonNull(ifNull, "ifNull");
-    requireNonNull(ifException, "ifException");
-    return (t) -> {
-      try {
-        final R result = f.tryApply(t);
-        if (result == null)
-          return ifNull.get();
-        return result;
-      } catch (final Throwable e) {
-        return ifException.apply(e);
-      }
-    };
-  }
-
-  public static <T, U, R> BiFn<T, U, R> orElseGet(
-      final RiskyBiFn<? super T, ? super U, ? extends R> f, final Supplier<? extends R> ifNull,
-      final Function<? super Throwable, ? extends R> ifException) {
-    requireNonNull(f, "f");
-    requireNonNull(ifNull, "ifNull");
-    requireNonNull(ifException, "ifException");
-    return (t, u) -> {
-      try {
-        final R result = f.tryApply2(t, u);
-        if (result == null)
-          return ifNull.get();
-        return result;
-      } catch (final Throwable e) {
-        return ifException.apply(e);
-      }
-    };
-  }
-
-  public static <T, R> Fn<T, Optional<R>> toOptional(final RiskyFn<? super T, ? extends R> f) {
+  public static <T, R> Fn<T, Optional<R>> toOptional(final Function<T, R> f) {
     requireNonNull(f, "f");
     return (t) -> {
       try {
-        return Optional.ofNullable(f.tryApply(t));
+        return Optional.ofNullable(f.apply(t));
       } catch (final Throwable e) {
         return Optional.empty();
       }
     };
   }
 
-  public static <T, U, R> BiFn<T, U, Optional<R>> toOptional(
-      final RiskyBiFn<? super T, ? super U, ? extends R> f) {
+  public static <T, U, R> BiFn<T, U, Optional<R>> toOptional(final BiFunction<T, U, R> f) {
     requireNonNull(f, "f");
     return (t, u) -> {
       try {
-        return Optional.ofNullable(f.tryApply2(t, u));
+        return Optional.ofNullable(f.apply(t, u));
       } catch (final Throwable e) {
         return Optional.empty();
       }
     };
   }
 
-  public static <T, R> Fn<T, Maybe<R>> toMaybe(final RiskyFn<? super T, ? extends R> f) {
+  public static <T, R> Fn<T, Maybe<R>> toMaybe(final Function<T, R> f) {
     requireNonNull(f, "f");
     return (t) -> {
       try {
-        return Maybe.ofValue(f.tryApply(t));
+        return Maybe.ofValue(f.apply(t));
       } catch (final Throwable e) {
         return Maybe.ofException(e);
       }
@@ -294,40 +196,26 @@ public final class Exceptions {
   }
 
   public static <T, U, R> BiFn<T, U, Maybe<R>> toMaybe(
-      final RiskyBiFn<? super T, ? super U, ? extends R> f) {
+      final BiFunction<T, U, R> f) {
     requireNonNull(f, "f");
     return (t, u) -> {
       try {
-        return Maybe.ofValue(f.tryApply2(t, u));
+        return Maybe.ofValue(f.apply(t, u));
       } catch (final Throwable e) {
         return Maybe.ofException(e);
       }
     };
   }
 
-  public static <T, R> Fn<T, R> toNull(final RiskyFn<? super T, ? extends R> f) {
-    requireNonNull(f, "f");
-    return (t) -> {
-      try {
-        return f.tryApply(t);
-      } catch (final Throwable e) {
-        return null;
-      }
-    };
+  public static <T, R> Fn<T, R> toNull(final Function<T, R> f) {
+    return orElse(f, null);
   }
 
-  public static <T, U, R> BiFn<T, U, R> toNull(final RiskyBiFn<? super T, ? super U, ? extends R> f) {
-    requireNonNull(f, "f");
-    return (t, u) -> {
-      try {
-        return f.tryApply2(t, u);
-      } catch (final Throwable e) {
-        return null;
-      }
-    };
+  public static <T, U, R> BiFn<T, U, R> toNull(final BiFunction<T, U, R> f) {
+    return orElse(f, null);
   }
 
-  public static <T, R> Fn<T, R> retry(final RiskyFn<? super T, ? extends R> f) {
+  public static <T, R> Fn<T, R> retry(final Function<T, R> f) {
     requireNonNull(f, "f");
     return (t) -> {
       final Thread thread = Thread.currentThread();
@@ -335,13 +223,13 @@ public final class Exceptions {
         try {
           if (thread.isInterrupted())
             throw new RuntimeException("Thread was interrupted", new InterruptedException());
-          return f.tryApply(t);
+          return f.apply(t);
         } catch (final Throwable e) {
         }
     };
   }
 
-  public static <T, U, R> BiFn<T, U, R> retry(final RiskyBiFn<? super T, ? super U, ? extends R> f) {
+  public static <T, U, R> BiFn<T, U, R> retry(final BiFunction<T, U, R> f) {
     requireNonNull(f, "f");
     return (t, u) -> {
       final Thread thread = Thread.currentThread();
@@ -349,7 +237,7 @@ public final class Exceptions {
         try {
           if (thread.isInterrupted())
             throw new RuntimeException("Thread was interrupted", new InterruptedException());
-          return f.tryApply2(t, u);
+          return f.apply(t, u);
         } catch (final Throwable e) {
         }
     };

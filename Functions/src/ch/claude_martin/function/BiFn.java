@@ -1,10 +1,12 @@
 package ch.claude_martin.function;
 
+import static ch.claude_martin.function.Exceptions.getCause;
 import static java.util.Objects.requireNonNull;
 
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.locks.Lock;
 import java.util.function.*;
 
@@ -77,30 +79,6 @@ public interface BiFn<T, U, R> extends BiFunction<T, U, R> {
     return Functions.uncurryBi(this);
   }
 
-  public default BiFn<T, U, R> sneaky() {
-    return this;
-  }
-
-  /**
-   * Returns value if any exception is thrown or if result is null.
-   * 
-   * @param value
-   *          Value to be used on exception or if result us null
-   * @return Function what never fails.
-   */
-  public default BiFn<T, U, R> orElse(final R value) {
-    requireNonNull(value, "value");
-    return Exceptions.orElse(this::apply2, value).andThen(
-        (final R r) -> r == null ? value : r);
-  }
-
-  /**
-   * Returns null if any exception is thrown.
-   */
-  public default BiFn<T, U, R> orNull() {
-    return Exceptions.orNull(this::apply2);
-  }
-
   @Override
   default <V> BiFn<T, U, V> andThen(final Function<? super R, ? extends V> after) {
     Objects.requireNonNull(after);
@@ -130,4 +108,85 @@ public interface BiFn<T, U, R> extends BiFunction<T, U, R> {
   public default Fn<T, R> set2nd(final U second) {
     return Functions.set2nd(this, second);
   }
+
+  /** Returns value if any exception is thrown or if result is null.
+   * 
+   * @param value
+   *          Value to be used on exception or if result us null
+   * @return Function what never fails. */
+  public default BiFn<T, U, R> orElse(final R value) {
+    return orElse(value, value);
+  }
+
+  /** Returns null if any exception is thrown. */
+  public default BiFn<T, U, R> orNull() {
+    return this.orElse(null, null);
+  }
+
+  public default BiFn<T, U, R> orElse(final R ifNull, final R ifException) {
+    return orElseGet(() -> ifNull, t -> ifException);
+  }
+
+  public default BiFn<T, U, R> orElseGet(final Supplier<R> ifNull,
+      final Function<Throwable, R> ifException) {
+    return (t, u) -> {
+      try {
+        final R result = this.apply2(t, u);
+        if (result == null)
+          return ifNull.get();
+        return result;
+      } catch (final Throwable e) {
+        return ifException.apply(getCause(e));
+      }
+    };
+  }
+
+  public default BiFn<T, U, Maybe<R>> toMaybe() {
+    return (t, u) -> {
+      try {
+        return Maybe.ofValue(this.apply2(t, u));
+      } catch (final Throwable e) {
+        return Maybe.ofException(e);
+      }
+    };
+  }
+
+  public default BiFn<T, U, Optional<R>> toOptional() {
+    return (t, u) -> {
+      try {
+        return Optional.ofNullable(this.apply2(t, u));
+      } catch (final Throwable e) {
+        return Optional.empty();
+      }
+    };
+  }
+
+  /** Creates a function that will have a name so that stack traces are easier to read. */
+  public default BiFn<T, U, R> named(final String name) {
+    requireNonNull(name, "name");
+    return (t, u) -> {
+      try {
+        return this.apply2(t, u);
+      } catch (final Throwable e) {
+        throw new RuntimeException(Exceptions.getMessage(e, name), e);
+      }
+    };
+  }
+
+  public default BiFn<T, U, R> handle(final Consumer<Throwable> handler) {
+    requireNonNull(handler, "handler");
+    return (t, u) -> {
+      try {
+        return this.apply2(t, u);
+      } catch (final Throwable e) {
+        handler.accept(getCause(e));
+        throw e;
+      }
+    };
+  }
+
+  public default BiFn<T, U, R> retry() {
+    return Exceptions.retry(this);
+  }
+
 }
