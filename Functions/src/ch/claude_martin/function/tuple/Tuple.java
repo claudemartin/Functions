@@ -33,11 +33,11 @@ public interface Tuple<T> extends Comparable<T> {
 
   public abstract Object[] toArray();
 
-  /** Returns the n-th projection of this tuple if {@code 0 < n <= arity}, otherwise throws an
+  /** Returns the n-th projection of this tuple if {@code 0 <= n < arity}, otherwise throws an
    * IndexOutOfBoundsException.
    * 
    * @param index
-   *          number of the element to be returned
+   *          index of the element to be returned
    * @return {@code ._<index+1>()} */
   public abstract Object get(final int index) throws IndexOutOfBoundsException;
 
