@@ -1,7 +1,5 @@
 package ch.claude_martin.function;
 
-import static java.util.Arrays.asList;
-import static java.util.Collections.unmodifiableSet;
 import static java.util.Objects.requireNonNull;
 
 import java.util.*;
@@ -11,8 +9,10 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.*;
-import java.util.stream.*;
-import java.util.stream.Collector.Characteristics;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import ch.claude_martin.function.tuple.Pair;
 import ch.claude_martin.function.tuple.Pair.UniPair;
@@ -525,90 +525,6 @@ public final class Functions {
     requireNonNull(h, "h");
     requireNonNull(i, "i");
     return (final T t) -> f.apply(g.apply(h.apply(i.apply(t))));
-  }
-
-  public static <C, A, E> Collector<E, A, C> collector(final Supplier<A> supplier,
-      final BiConsumer<A, E> accumulator, final BinaryOperator<A> combiner,
-      final Function<A, C> finisher, final Collector.Characteristics... characteristics) {
-    final EnumSet<Characteristics> set = EnumSet.noneOf(Characteristics.class);
-    if (characteristics != null)
-      set.addAll(asList(characteristics));
-    return new Collector<E, A, C>() {
-
-      @Override
-      public Supplier<A> supplier() {
-        return supplier;
-      }
-
-      @Override
-      public BiConsumer<A, E> accumulator() {
-        return accumulator;
-      }
-
-      @Override
-      public BinaryOperator<A> combiner() {
-        return combiner;
-      }
-
-      @Override
-      public Function<A, C> finisher() {
-        return finisher;
-      }
-
-      @Override
-      public Set<java.util.stream.Collector.Characteristics> characteristics() {
-        return unmodifiableSet(set);
-      }
-
-    };
-  }
-
-  /** Easy creation of a concurrent {@link Collector} from an existing, concurrent collection and an
-   * accumulator. */
-  public static <C, E> Collector<E, ?, C> collector(final C collection,
-      final BiConsumer<C, E> accumulator) {
-    return new Collector<E, C, C>() {
-
-      @Override
-      public Supplier<C> supplier() {
-        return () -> collection;
-      }
-
-      @Override
-      public BiConsumer<C, E> accumulator() {
-        return accumulator;
-      }
-
-      @Override
-      public BinaryOperator<C> combiner() {
-        return (x, y) -> x;
-      }
-
-      @Override
-      public Function<C, C> finisher() {
-        return Function.identity();
-      }
-
-      @Override
-      public Set<java.util.stream.Collector.Characteristics> characteristics() {
-        return EnumSet.of(Characteristics.IDENTITY_FINISH, Characteristics.CONCURRENT);
-      }
-    };
-  }
-
-  /** Easy creation of a concurrent {@link Collector} from an existing collection. The collector can
-   * be used on a parallel stream if the collection supports parallel access. */
-  public static <C extends Collection<E>, E> Collector<E, ?, C> collector(final C collection) {
-    return collector(collection, (c, e) -> c.add(e));
-  }
-
-  /** Easy creation of a concurrent {@link Collector} from a collection type. */
-  public static <C extends Collection<E>, E> Collector<E, ?, C> collector(
-      final Supplier<C> collection) {
-    return collector(collection, Collection::add, (a, b) -> {
-      a.addAll(b);
-      return a;
-    }, Function.identity(), Collections.singleton(Characteristics.IDENTITY_FINISH));
   }
 
   public static <T, R> Fn<T, R> sync(final Function<T, R> f) {
