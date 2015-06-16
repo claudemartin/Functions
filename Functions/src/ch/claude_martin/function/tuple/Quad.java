@@ -102,9 +102,9 @@ public interface Quad<A, B, C, D> extends Tuple<Quad<A, B, C, D>>, Serializable 
   }
 
   public default <R> R applyTo(
-      final Function<? super A, ? extends Function<? super B, ? extends Function<? super C, ? extends R>>> f) {
+      final Function<? super A, ? extends Function<? super B, ? extends Function<? super C, ? extends Function<? super D, ? extends R>>>> f) {
     requireNonNull(f, "f");
-    return f.apply(this._1()).apply(this._2()).apply(this._3());
+    return f.apply(this._1()).apply(this._2()).apply(this._3()).apply(this._4());
   }
 
   public default <R> R applyTo(final QuadFn<A, B, C, D, R> f) {
