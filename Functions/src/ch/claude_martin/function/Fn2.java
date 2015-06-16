@@ -2,6 +2,9 @@ package ch.claude_martin.function;
 
 import java.util.Map.Entry;
 
+import ch.claude_martin.function.tuple.Pair;
+import ch.claude_martin.function.tuple.Tuple;
+
 /** {@code f : T -> U -> R } */
 @FunctionalInterface
 public interface Fn2<T, U, R> extends Fn<T, Fn<U, R>> {
@@ -17,6 +20,14 @@ public interface Fn2<T, U, R> extends Fn<T, Fn<U, R>> {
 
   public default R apply2(final T t, final U u) {
     return this.apply(t).apply(u);
+  }
+
+  @SuppressWarnings("unchecked")
+  @Override
+  public default R applyTuple(final Tuple<?> t) {
+    if (t instanceof Pair)
+      return ((Pair<T, U>) t).applyTo(this);
+    throw new IllegalArgumentException();
   }
 
   @Override

@@ -1,6 +1,7 @@
 package ch.claude_martin.function;
 
 import ch.claude_martin.function.tuple.Triplet;
+import ch.claude_martin.function.tuple.Tuple;
 
 /** {@code f : T -> U -> V -> R } */
 @FunctionalInterface
@@ -18,11 +19,20 @@ public interface Fn3<T, U, V, R> extends Fn<T, Fn2<U, V, R>> {
     return this.apply(t).apply(u).apply(v);
   }
 
+  @SuppressWarnings("unchecked")
+  @Override
+  public default R applyTuple(final Tuple<?> t) {
+    if (t instanceof Triplet)
+      return ((Triplet<T, U, V>) t).applyTo(this);
+    throw new IllegalArgumentException();
+  }
+
   /** Converts {@code Fn3<T,U,V,R>} to {@code Fn<Triplet<T,U,V>,R>} */
   public default Fn<Triplet<T, U, V>, R> uncurry() {
     return Functions.uncurry3(this);
   }
 
+  @Override
   public default TriFn<T, U, V, R> toTriFn() {
     return this::apply3;
   }

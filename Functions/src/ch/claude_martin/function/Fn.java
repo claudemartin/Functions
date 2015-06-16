@@ -11,6 +11,9 @@ import java.util.concurrent.locks.Lock;
 import java.util.function.*;
 
 import ch.claude_martin.function.tuple.Pair;
+import ch.claude_martin.function.tuple.Quad;
+import ch.claude_martin.function.tuple.Triplet;
+import ch.claude_martin.function.tuple.Tuple;
 
 /** Functional interface like {@link Function} but with shorter name and some more methods.
  * 
@@ -96,6 +99,16 @@ public interface Fn<T, R> extends Function<T, R> {
     return this.apply(t);
   }
 
+  /** Applies all elements of the given tuple. This fails if the given tuple doesn't have the correct
+   * arity. */
+  @SuppressWarnings({ "unchecked", "rawtypes" })
+  public default Object applyTuple(final Tuple<?> t) {
+    Object f = this;
+    for (int i = 0; i < t.arity(); i++)
+      f = ((Fn) f).apply(t.get(i));
+    return f;
+  }
+
   /** Ignores the result. */
   public default Consumer<T> toVoid() {
     return this::apply;
@@ -107,10 +120,34 @@ public interface Fn<T, R> extends Function<T, R> {
     return Functions.curry((Function<Entry<A, B>, R>) this);
   }
 
+  /** This only works if {@code T extends Triplet<A,B,C>}. */
+  @SuppressWarnings("unchecked")
+  public default <A, B, C> Fn3<A, B, C, R> curry3() {
+    return Functions.curry3((Function<Triplet<A, B, C>, R>) this);
+  }
+
+  /** This only works if {@code T extends Quad<A,B,C,D>}. */
+  @SuppressWarnings("unchecked")
+  public default <A, B, C, D> Fn4<A, B, C, D, R> curry4() {
+    return Functions.curry4((Function<Quad<A, B, C, D>, R>) this);
+  }
+
   /** This only works if {@code T extends Entry<A,B>}. */
   @SuppressWarnings("unchecked")
   public default <A, B> BiFn<A, B, R> toBiFn() {
     return Functions.toBiFunction2((Function<Entry<A, B>, R>) this);
+  }
+
+  /** This only works if {@code T extends Triplet<A,B,C>}. */
+  @SuppressWarnings("unchecked")
+  public default <A, B, C> TriFn<A, B, C, R> toTriFn() {
+    return (s, t, u) -> ((Function<Triplet<A, B, C>, R>) this).apply(Triplet.of(s, t, u));
+  }
+
+  /** This only works if {@code T extends Quad<A,B,C,D>}. */
+  @SuppressWarnings("unchecked")
+  public default <A, B, C, D> QuadFn<A, B, C, D, R> toQuadFn() {
+    return (s, t, u, v) -> ((Function<Quad<A, B, C, D>, R>) this).apply(Quad.of(s, t, u, v));
   }
 
   @Override

@@ -1,6 +1,7 @@
 package ch.claude_martin.function;
 
 import ch.claude_martin.function.tuple.Quad;
+import ch.claude_martin.function.tuple.Tuple;
 
 /** {@code f : T -> U -> V -> W -> R } */
 @FunctionalInterface
@@ -22,6 +23,15 @@ public interface Fn4<T, U, V, W, R> extends Fn<T, Fn3<U, V, W, R>> {
     return this.apply(t).apply(u).apply(v).apply(w);
   }
 
+  @SuppressWarnings("unchecked")
+  @Override
+  public default R applyTuple(final Tuple<?> t) {
+    if (t instanceof Quad)
+      return ((Quad<T, U, V, W>) t).applyTo(this);
+    throw new IllegalArgumentException();
+  }
+
+  @Override
   public default QuadFn<T, U, V, W, R> toQuadFn() {
     return this::apply4;
   }

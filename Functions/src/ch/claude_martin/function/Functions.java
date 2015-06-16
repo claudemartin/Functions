@@ -56,6 +56,14 @@ public final class Functions {
     return t -> u -> f.apply(toPair(t, u));
   }
 
+  public static <T, U, V, R> Fn3<T, U, V, R> curry3(final Function<Triplet<T, U, V>, R> f) {
+    return t -> u -> v -> f.apply(Triplet.of(t, u, v));
+  }
+
+  public static <T, U, V, W, R> Fn4<T, U, V, W, R> curry4(final Function<Quad<T, U, V, W>, R> f) {
+    return t -> u -> v -> w -> f.apply(Quad.of(t, u, v, w));
+  }
+
   public static <T, U, R> Fn2<T, U, R> curry(final BiFunction<T, U, R> f) {
     return t -> u -> f.apply(t, u);
   }
