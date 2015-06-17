@@ -109,7 +109,7 @@ public interface Pair<K, V> extends Entry<K, V>, Tuple<Entry<K, V>>, Serializabl
   }
 
   public default Pair<V, K> swap() {
-    return Functions.toPair(this.getValue(), this.getKey());
+    return Pair.of(this.getValue(), this.getKey());
   };
 
   public default <R> R applyTo(final BiFunction<? super K, ? super V, ? extends R> f) {

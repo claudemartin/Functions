@@ -51,6 +51,10 @@ public final class Seq<E> extends AbstractList<E> {
   private static final Object NOTHING = new Object();
   public static final Seq<?>  EMPTY   = new Seq<>();
 
+  public static <E> Seq<E> seq(final E head, final Seq<E> tail) {
+    return new Seq<>(head, tail);
+  }
+
   @SafeVarargs
   public static <E> Seq<E> of(final E... elements) {
     requireNonNull(elements, "elements");
@@ -133,6 +137,14 @@ public final class Seq<E> extends AbstractList<E> {
     return accumulator.apply(this._head, this._tail.foldRight(accumulator, identity));
   }
 
+  /** Append one or more elements. Creates a new list containing all elements of this and the given
+   * elements. */
+  public Seq<E> append(final E e, @SuppressWarnings("unchecked") final E... more) {
+    return this.append(seq(e, of(more)));
+  }
+
+  /** Appends a given sequence. Creates a new list containing all elements of this and the given
+   * sequence. */
   @SuppressWarnings("unchecked")
   public Seq<E> append(final Seq<? extends E> list) {
     requireNonNull(list, "list");
@@ -193,6 +205,32 @@ public final class Seq<E> extends AbstractList<E> {
     return Pair.of(a, b);
   }
 
+  /** Removes duplicate elements from a sequence. */
+  public Seq<E> distinct() {
+    return this.stream().distinct().collect(toSeq());
+  }
+
+  public boolean all(final Predicate<E> predicate) {
+    requireNonNull(predicate, "predicate");
+    if (this.isEmpty())
+      return true;
+    return predicate.test(this._head) && this._tail.all(predicate);
+  }
+
+  public boolean any(final Predicate<E> predicate) {
+    requireNonNull(predicate, "predicate");
+    if (this.isEmpty())
+      return false;
+    return predicate.test(this._head) || this._tail.any(predicate);
+  }
+
+  public <T> Seq<T> map(final Function<? super E, ? extends T> mapper) {
+    requireNonNull(mapper, "mapper");
+    if (this.isEmpty())
+      return empty();
+    return new Seq<>(mapper.apply(this._head), this._tail.map(mapper));
+  }
+
   public Seq<E> sorted() {
     return this.stream().sorted().collect(toSeq());
   }
@@ -224,6 +262,27 @@ public final class Seq<E> extends AbstractList<E> {
     };
     final Function<List<T>, Seq<T>> finisher = Seq::ofCollection;
     return Collector.of(supplier, accumulator, combiner, finisher);
+  }
+
+  @Override
+  public boolean equals(final Object o) {
+    if (this == o)
+      return true;
+    if (o instanceof Seq) {
+      final Seq<?> s = (Seq<?>) o;
+      if (this.isEmpty())
+        return s.isEmpty();
+      return this.length() == s.length() && this.head().equals(s.head())
+          && this.tail().equals(s.tail());
+    }
+    return false;
+  }
+
+  @Override
+  public int hashCode() {
+    if (this.isEmpty())
+      return 0;
+    return Objects.hashCode(this._head) * 31 + this._tail.hashCode();
   }
 
   // Collection / List:
