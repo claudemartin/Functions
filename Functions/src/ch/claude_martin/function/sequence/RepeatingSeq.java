@@ -21,9 +21,9 @@ final class RepeatingSeq<E> extends AbstractList<E> implements Seq<E> {
     requireNonNull(sequence, "sequence");
     if (offset < 0 || offset >= sequence.length())
       throw new IllegalArgumentException();
-    if (sequence.isEmpty())
+    if (length <= 0 || sequence.isEmpty())
       throw new IllegalArgumentException();
-    // TODO : If sequence is already RepeatingSeq then this could use it's inner sequence!
+    // TODO : If sequence is already RepeatingSeq then it's inner sequence could be used!
     this.sequence = sequence;
     this.offset = offset;
     this.length = length;
