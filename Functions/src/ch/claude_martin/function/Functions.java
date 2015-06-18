@@ -8,11 +8,17 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.function.*;
+import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Predicate;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
+import ch.claude_martin.function.sequence.Seq;
 import ch.claude_martin.function.tuple.Pair;
 import ch.claude_martin.function.tuple.Pair.UniPair;
 import ch.claude_martin.function.tuple.Quad;
@@ -227,7 +233,7 @@ public final class Functions {
     final Iterator<? extends B> itrB = b.iterator();
     while (itrA.hasNext() && itrB.hasNext()) {
       final PAIR pair = zipper.apply(itrA.next(), itrB.next());
-      result = new Seq<>(pair, result);
+      result = Seq.seq(pair, result);
     }
     return result;
   }
@@ -266,7 +272,7 @@ public final class Functions {
     final Iterator<? extends B> itrB = b.iterator();
     final Iterator<? extends C> itrC = c.iterator();
     while (itrA.hasNext() && itrB.hasNext() && itrC.hasNext())
-      result = new Seq<>(zipper.apply3(itrA.next(), itrB.next(), itrC.next()), result);
+      result = Seq.seq(zipper.apply3(itrA.next(), itrB.next(), itrC.next()), result);
     return result;
   }
 
@@ -310,7 +316,7 @@ public final class Functions {
     final Iterator<? extends C> itrC = c.iterator();
     final Iterator<? extends D> itrD = d.iterator();
     while (itrA.hasNext() && itrB.hasNext() && itrC.hasNext()&& itrD.hasNext())
-      result = new Seq<>(zipper.apply4(itrA.next(), itrB.next(), itrC.next(), itrD.next()),
+      result = Seq.seq(zipper.apply4(itrA.next(), itrB.next(), itrC.next(), itrD.next()),
           result);
     return result;
   }
