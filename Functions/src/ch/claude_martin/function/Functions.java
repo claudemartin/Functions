@@ -8,12 +8,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.function.BiConsumer;
-import java.util.function.BiFunction;
-import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.function.Predicate;
-import java.util.function.Supplier;
+import java.util.function.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
@@ -209,135 +204,105 @@ public final class Functions {
 
   public static <T> Seq<UniPair<T>> zipUni(final Collection<? extends T> a,
       final Collection<? extends T> b) {
-    requireNonNull(a, "a");
-    requireNonNull(b, "b");
-    return zip(//
-        Pair::uniform, // Creates Entry of two elements
-        a, b); // both lists.
+    Seq<UniPair<T>> result = Seq.empty();
+    for (final UniPair<T> q : zip(UniPair::<T> of, a, b))
+      result = Seq.seq(q, result);
+    return result;
   }
 
   public static <A, B> Seq<Pair<A, B>> zip(final Collection<? extends A> a,
       final Collection<? extends B> b) {
-    requireNonNull(a, "a");
-    requireNonNull(b, "b");
-    return zip(//
-        Pair::<A, B> of, // Creates Entry of two elements
-        a, b); // both lists.
-  }
-
-  public static <A, B, PAIR> Seq<PAIR> zip(
-      final BiFunction<? super A, ? super B, ? extends PAIR> zipper,
-      final Collection<? extends A> a, final Collection<? extends B> b) {
-    Seq<PAIR> result = Seq.empty();
-    final Iterator<? extends A> itrA = a.iterator();
-    final Iterator<? extends B> itrB = b.iterator();
-    while (itrA.hasNext() && itrB.hasNext()) {
-      final PAIR pair = zipper.apply(itrA.next(), itrB.next());
-      result = Seq.seq(pair, result);
-    }
+    Seq<Pair<A, B>> result = Seq.empty();
+    for (final Pair<A, B> q : zip(Pair::<A, B> of, a, b))
+      result = Seq.seq(q, result);
     return result;
   }
 
-  static <A, B, PAIR, LIST extends List<PAIR>> LIST zip(final Supplier<? extends LIST> supplier,
+  static <A, B, PAIR> Iterable<PAIR> zip(
       final BiFunction<? super A, ? super B, ? extends PAIR> zipper, //
       final Iterable<? extends A> a, final Iterable<? extends B> b) {
-    requireNonNull(supplier, "supplier");
     requireNonNull(zipper, "zipper");
-    requireNonNull(a, "a");
-    requireNonNull(b, "b");
-    final Iterator<? extends A> itrA = a.iterator();
-    final Iterator<? extends B> itrB = b.iterator();
-    final LIST result = supplier.get();
-    while (itrA.hasNext() && itrB.hasNext())
-      result.add(zipper.apply(itrA.next(), itrB.next()));
-    return result;
+    final Iterator<? extends A> itrA = requireNonNull(a, "a").iterator();
+    final Iterator<? extends B> itrB = requireNonNull(b, "b").iterator();
+
+    return () -> {
+      return new Iterator<PAIR>() {
+        @Override
+        public boolean hasNext() {
+          return itrA.hasNext() && itrB.hasNext();
+        }
+
+        @Override
+        public PAIR next() {
+          return zipper.apply(itrA.next(), itrB.next());
+        }
+      };
+    };
   }
 
   public static <A, B, C> Seq<Triplet<A, B, C>> zip(final Collection<? extends A> a,
       final Collection<? extends B> b, final Collection<? extends C> c) {
-    requireNonNull(a, "a");
-    requireNonNull(b, "b");
-    requireNonNull(c, "c");
-    return zip(//
-        Triplet::<A, B, C> of, // Creates Entry of 3 elements
-        a, b, c); // 3 lists.
-  }
-
-  public static <A, B, C, TRIPLET extends Triplet<A, B, C>> Seq<TRIPLET> zip(
-      final TriFn<? super A, ? super B, ? super C, ? extends TRIPLET> zipper, //
-      final Collection<? extends A> a, final Collection<? extends B> b,
-      final Collection<? extends C> c) {
-    Seq<TRIPLET> result = Seq.empty();
-    final Iterator<? extends A> itrA = a.iterator();
-    final Iterator<? extends B> itrB = b.iterator();
-    final Iterator<? extends C> itrC = c.iterator();
-    while (itrA.hasNext() && itrB.hasNext() && itrC.hasNext())
-      result = Seq.seq(zipper.apply3(itrA.next(), itrB.next(), itrC.next()), result);
+    Seq<Triplet<A, B, C>> result = Seq.empty();
+    for (final Triplet<A, B, C> q : zip(Triplet::<A, B, C> of, a, b, c))
+      result = Seq.seq(q, result);
     return result;
   }
 
-  static <A, B, C, TRIPLET, LIST extends List<TRIPLET>> LIST zip(
-      final Supplier<? extends LIST> supplier,
+  static <A, B, C, TRIPLET> Iterable<TRIPLET> zip(
       final TriFn<? super A, ? super B, ? super C, ? extends TRIPLET> zipper, //
       final Iterable<? extends A> a, final Iterable<? extends B> b, final Iterable<? extends C> c) {
-    requireNonNull(supplier, "supplier");
     requireNonNull(zipper, "zipper");
-    requireNonNull(a, "a");
-    requireNonNull(b, "b");
-    requireNonNull(c, "c");
-    final Iterator<? extends A> itrA = a.iterator();
-    final Iterator<? extends B> itrB = b.iterator();
-    final Iterator<? extends C> itrC = c.iterator();
-    final LIST result = supplier.get();
-    while (itrA.hasNext() && itrB.hasNext() && itrC.hasNext())
-      result.add(zipper.apply3(itrA.next(), itrB.next(), itrC.next()));
-    return result;
+    final Iterator<? extends A> itrA = requireNonNull(a, "a").iterator();
+    final Iterator<? extends B> itrB = requireNonNull(b, "b").iterator();
+    final Iterator<? extends C> itrC = requireNonNull(c, "c").iterator();
+
+    return () -> {
+      return new Iterator<TRIPLET>() {
+        @Override
+        public boolean hasNext() {
+          return itrA.hasNext() && itrB.hasNext() && itrC.hasNext();
+        }
+
+        @Override
+        public TRIPLET next() {
+          return zipper.apply3(itrA.next(), itrB.next(), itrC.next());
+        }
+      };
+    };
   }
 
-  public static <A, B, C, D> List<Quad<A, B, C, D>> zip(final Collection<? extends A> a,
+  public static <A, B, C, D> Seq<Quad<A, B, C, D>> zip(final Collection<? extends A> a,
       final Collection<? extends B> b, final Collection<? extends C> c,
       final Collection<? extends D> d) {
-    requireNonNull(a, "a");
-    requireNonNull(b, "b");
-    requireNonNull(c, "c");
-    requireNonNull(d, "d");
-    return zip(//
-        Quad::<A, B, C, D> of, // Creates Entry of 4 elements
-        a, b, c, d); // 4 lists.
-  }
-
-  public static <A, B, C, D, QUAD extends Quad<A, B, C, D>> Seq<QUAD> zip(
-      final QuadFn<? super A, ? super B, ? super C, ? super D, ? extends QUAD> zipper, //
-      final Collection<? extends A> a, final Collection<? extends B> b,
-      final Collection<? extends C> c, final Collection<? extends D> d) {
-    Seq<QUAD> result = Seq.empty();
-    final Iterator<? extends A> itrA = a.iterator();
-    final Iterator<? extends B> itrB = b.iterator();
-    final Iterator<? extends C> itrC = c.iterator();
-    final Iterator<? extends D> itrD = d.iterator();
-    while (itrA.hasNext() && itrB.hasNext() && itrC.hasNext()&& itrD.hasNext())
-      result = Seq.seq(zipper.apply4(itrA.next(), itrB.next(), itrC.next(), itrD.next()),
-          result);
+    Seq<Quad<A, B, C, D>> result = Seq.empty();
+    for (final Quad<A, B, C, D> q : zip(Quad::<A, B, C, D> of, a, b, c, d))
+      result = Seq.seq(q, result);
     return result;
   }
-  static <A, B, C, D, QUAD, LIST extends List<QUAD>> LIST zip(
-      final Supplier<? extends LIST> supplier,
+
+  static <A, B, C, D, QUAD> Iterable<QUAD> zip(
       final QuadFn<? super A, ? super B, ? super C, ? super D, ? extends QUAD> zipper, //
       final Iterable<? extends A> a, final Iterable<? extends B> b, final Iterable<? extends C> c,
       final Iterable<? extends D> d) {
-    requireNonNull(supplier, "supplier");
     requireNonNull(zipper, "zipper");
-    requireNonNull(a, "a");
-    requireNonNull(b, "b");
-    requireNonNull(c, "c");
-    final Iterator<? extends A> itrA = a.iterator();
-    final Iterator<? extends B> itrB = b.iterator();
-    final Iterator<? extends C> itrC = c.iterator();
-    final Iterator<? extends D> itrD = d.iterator();
-    final LIST result = supplier.get();
-    while (itrA.hasNext() && itrB.hasNext() && itrC.hasNext() && itrD.hasNext())
-      result.add(zipper.apply4(itrA.next(), itrB.next(), itrC.next(), itrD.next()));
-    return result;
+    final Iterator<? extends A> itrA = requireNonNull(a, "a").iterator();
+    final Iterator<? extends B> itrB = requireNonNull(b, "b").iterator();
+    final Iterator<? extends C> itrC = requireNonNull(c, "c").iterator();
+    final Iterator<? extends D> itrD = requireNonNull(d, "d").iterator();
+
+    return () -> {
+      return new Iterator<QUAD>() {
+        @Override
+        public boolean hasNext() {
+          return itrA.hasNext() && itrB.hasNext() && itrC.hasNext() && itrD.hasNext();
+        }
+
+        @Override
+        public QUAD next() {
+          return zipper.apply4(itrA.next(), itrB.next(), itrC.next(), itrD.next());
+        }
+      };
+    };
   }
 
   public static <A, B> Pair<List<A>, List<B>> unzip(final List<? extends Entry<A, B>> pairs) {
