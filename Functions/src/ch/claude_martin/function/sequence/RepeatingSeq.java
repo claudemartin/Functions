@@ -2,16 +2,14 @@ package ch.claude_martin.function.sequence;
 
 import static java.util.Objects.requireNonNull;
 
-import java.util.AbstractList;
 import java.util.Comparator;
 import java.util.Iterator;
-import java.util.NoSuchElementException;
 
 /* UNDER CONSTRUCTION! */
-final class RepeatingSeq<E> extends AbstractList<E> implements Seq<E> {
-  private final int    offset;
-  private final long   length;
-  private final Seq<E> sequence;
+final class RepeatingSeq<E> extends AbstractSeq<E> {
+  final int    offset;
+  final long   length;
+  final Seq<E> sequence;
 
   RepeatingSeq(final Seq<E> sequence) {
     this(sequence, 0, INFINITY);
@@ -32,11 +30,6 @@ final class RepeatingSeq<E> extends AbstractList<E> implements Seq<E> {
   @Override
   public boolean isEmpty() {
     return this.length == 0;
-  }
-
-  @Override
-  public int size() {
-    return Seq.super.size();
   }
 
   @Override
@@ -73,16 +66,6 @@ final class RepeatingSeq<E> extends AbstractList<E> implements Seq<E> {
   @Override
   public Seq<E> tail() {
     return this.sequence.drop(this.offset).tail();
-  }
-
-  @Override
-  public E last() {
-    throw new NoSuchElementException();
-  }
-
-  @Override
-  public LinkedSeq<E> init() {
-    throw new NoSuchElementException();
   }
 
   @Override
@@ -133,13 +116,7 @@ final class RepeatingSeq<E> extends AbstractList<E> implements Seq<E> {
 
   @Override
   public Seq<E> take(final int n) {
-    return new RepeatingSeq<>(this.sequence.reverse(), this.offset, n);
-  }
-
-  @Override
-  public Seq<E> drop(final int n) {
-    // TODO Auto-generated method stub
-    return Seq.super.drop(n);
+    return new RepeatingSeq<>(this.sequence, this.offset, n);
   }
 
 }

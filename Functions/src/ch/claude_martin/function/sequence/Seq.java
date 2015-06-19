@@ -2,18 +2,9 @@ package ch.claude_martin.function.sequence;
 
 import static java.util.Objects.requireNonNull;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.Iterator;
-import java.util.List;
-import java.util.NoSuchElementException;
-import java.util.function.BiConsumer;
-import java.util.function.BiFunction;
-import java.util.function.BinaryOperator;
-import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.function.Predicate;
-import java.util.function.Supplier;
+import java.util.*;
+import java.util.concurrent.Callable;
+import java.util.function.*;
 import java.util.stream.Collector;
 
 import ch.claude_martin.function.tuple.Pair;
@@ -29,8 +20,57 @@ public interface Seq<E> extends List<E> {
     return (LinkedSeq<E>) EMPTY;
   }
 
+  public static Seq<Integer> ofInts(final int... elements) {
+    requireNonNull(elements, "elements");
+    final Integer[] ints = new Integer[elements.length];
+    for (int x = 0; x < elements.length; x++)
+      ints[x] = elements[x];
+    return new ArraySeq<>(ints, 0);
+  }
+
+  public static Seq<Long> ofLongs(final long... elements) {
+    requireNonNull(elements, "elements");
+    final Long[] longs = new Long[elements.length];
+    for (int x = 0; x < elements.length; x++)
+      longs[x] = elements[x];
+    return new ArraySeq<>(longs, 0);
+  }
+
+  public static Seq<Double> ofDoubles(final double... elements) {
+    requireNonNull(elements, "elements");
+    final Double[] doubles = new Double[elements.length];
+    for (int x = 0; x < elements.length; x++)
+      doubles[x] = elements[x];
+    return new ArraySeq<>(doubles, 0);
+  }
+
+  /** Creates a clone of the given elements. */
+  @SafeVarargs
+  public static <E> Seq<E> of(final E... elements) {
+    requireNonNull(elements, "elements");
+    return new ArraySeq<>(elements.clone(), 0);
+  }
+
+  public static <E> Seq<E> ofCollection(final Collection<E> elements) {
+    requireNonNull(elements, "elements");
+    final java.util.List<E> list;
+    if (elements instanceof java.util.List)
+      list = (java.util.List<E>) elements;
+    else
+      list = new ArrayList<>(elements);
+    final ListIterator<E> itr = list.listIterator(list.size());
+    LinkedSeq<E> result = Seq.empty();
+    while (itr.hasPrevious())
+      result = new LinkedSeq<>(itr.previous(), result);
+    return result;
+  }
+
+  public static <E> Seq<E> lazy(final Callable<E> callable) {
+    return new LazySeq<>(callable);
+  }
+
   public static <E> Seq<E> seq(final E head, final Seq<E> tail) {
-    return new LinkedSeq<E>(head, tail);
+    return new LinkedSeq<>(head, tail);
   }
 
   public static <E> Seq<E> seq(final Seq<E> sequence) {
@@ -48,7 +88,7 @@ public interface Seq<E> extends List<E> {
       a.addAll(b);
       return a;
     };
-    final Function<List<T>, Seq<T>> finisher = LinkedSeq::ofCollection;
+    final Function<List<T>, Seq<T>> finisher = Seq::ofCollection;
     return Collector.of(supplier, accumulator, combiner, finisher);
   }
 
@@ -62,7 +102,7 @@ public interface Seq<E> extends List<E> {
   public abstract E last();
 
   /** returns the list without its {@link #last last item}. */
-  public abstract LinkedSeq<E> init();
+  public abstract AbstractSeq<E> init();
 
   public abstract long length();
 
@@ -98,8 +138,8 @@ public interface Seq<E> extends List<E> {
 
   /** Append one or more elements. Creates a new list containing all elements of this and the given
    * elements. */
-  public default Seq<E> append(final E e, final E... more) {
-    return this.append(new LinkedSeq<>(e, LinkedSeq.of(more)));
+  public default Seq<E> append(final E e, @SuppressWarnings("unchecked") final E... more) {
+    return this.append(new LinkedSeq<>(e, Seq.of(more)));
   }
 
   /** Appends a given sequence. Creates a new list containing all elements of this and the given
@@ -122,6 +162,15 @@ public interface Seq<E> extends List<E> {
     for (int i = elements.length - 1; i >= 0; i--)
       result = new LinkedSeq<>((E) elements[i], result);
     return result;
+  }
+
+  @Override
+  public default E get(final int index) {
+    if (index < 0 || index >= this.length())
+      throw new IndexOutOfBoundsException();
+    if (index == 0)
+      return this.head();
+    return this.tail().get(index - 1);
   }
 
   public default Seq<E> take(final int n) {
@@ -156,8 +205,8 @@ public interface Seq<E> extends List<E> {
 
   /** The partition function takes a predicate a list and returns the pair of lists of elements which
    * do and do not satisfy the predicate, respectively; */
-  public default Pair<LinkedSeq<E>, LinkedSeq<E>> partition(final Predicate<? super E> predicate) {
-    LinkedSeq<E> a = Seq.empty(), b = Seq.empty();
+  public default Pair<Seq<E>, Seq<E>> partition(final Predicate<? super E> predicate) {
+    Seq<E> a = Seq.empty(), b = Seq.empty();
     for (final E e : this)
       if (predicate.test(e))
         a = new LinkedSeq<>(e, a);
@@ -231,13 +280,50 @@ public interface Seq<E> extends List<E> {
   }
 
   @Override
-  public abstract boolean contains(Object o);
+  public default boolean contains(final Object o) {
+    if (this.isEmpty())
+      return false;
+    if (this.head().equals(o))
+      return true;
+    return this.tail().contains(o);
+  }
+
 
   @Override
-  public abstract Iterator<E> iterator();
+  public default Iterator<E> iterator() {
 
+    return new Iterator<E>() {
+      Seq<E> remaining = Seq.this;
+
+      @Override
+      public boolean hasNext() {
+        return !this.remaining.isEmpty();
+      }
+
+      @Override
+      public E next() {
+        final E e = this.remaining.head();
+        this.remaining = this.remaining.tail();
+        return e;
+      }
+
+    };
+
+  }
+
+  @SuppressWarnings("unchecked")
   @Override
-  public abstract <T> T[] toArray(T[] a);
+  public default <T> T[] toArray(final T[] a) {
+    if (a.length == this.size()) {
+      Seq<E> l = this;
+      for (int i = 0; i < a.length; i++) {
+        a[i] = (T) l.head();
+        l = l.tail();
+      }
+    }
+    return this.toArray(Arrays.copyOf(a, this.size()));
+
+  }
 
   @Override
   public default int size() {
