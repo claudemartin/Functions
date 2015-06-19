@@ -123,22 +123,6 @@ public interface Seq<E> extends List<E> {
     return new LinkedSeq<>(head, tail);
   }
 
-  public static <E> Seq<E> repeat(final Seq<E> sequence) {
-    requireNonNull(sequence, "sequence");
-    if (sequence.isEmpty() || !sequence.isFinite())
-      return sequence;
-    return new RepeatingSeq<>(sequence);
-  }
-
-  public static <E> Seq<E> repeat(final Seq<E> sequence, final int offset, final long length) {
-    requireNonNull(sequence, "sequence");
-    if (sequence.isEmpty())
-      return sequence;
-    if (!sequence.isFinite())
-      return sequence.drop(offset);
-    return new RepeatingSeq<>(sequence, offset, length);
-  }
-
   /** Collect elements of a finite stream to a sequence. */
   public static <T> Collector<T, ?, Seq<T>> toSeq() {
     final Supplier<List<T>> supplier = ArrayList::new;
@@ -243,7 +227,7 @@ public interface Seq<E> extends List<E> {
     return this.tail().get(index - 1);
   }
 
-  public default Seq<E> take(final int n) {
+  public default Seq<E> take(final long n) {
     if (n < 0 || n > this.length())
       throw new IllegalArgumentException();
     if (n == 0)
@@ -253,7 +237,7 @@ public interface Seq<E> extends List<E> {
     return new LinkedSeq<>(this.head(), this.tail().take(n - 1));
   }
 
-  public default Seq<E> drop(final int n) {
+  public default Seq<E> drop(final long n) {
     if (n < 0 || n > this.length())
       throw new IllegalArgumentException();
     if (n == 0)
@@ -261,6 +245,20 @@ public interface Seq<E> extends List<E> {
     if (n == 1)
       return this.tail();
     return this.tail().drop(n - 1);
+  }
+
+  public default Seq<E> repeat() {
+    if (this.isEmpty() || !this.isFinite())
+      return this;
+    return new RepeatingSeq<>(this);
+  }
+
+  public default Seq<E> repeat(final int offset, final long length) {
+    if (this.isEmpty())
+      return this;
+    if (!this.isFinite())
+      return this.drop(offset).take(length);
+    return new RepeatingSeq<>(this, offset, length);
   }
 
   public default Seq<E> filter(final Predicate<? super E> predicate) {

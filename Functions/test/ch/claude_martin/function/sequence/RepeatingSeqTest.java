@@ -14,10 +14,10 @@ import org.junit.Test;
 public class RepeatingSeqTest {
 
   Seq<Integer> s0123       = Seq.ofInts(0, 1, 2, 3);
-  Seq<Integer> s1230123012 = Seq.repeat(this.s0123, 1, 10);
-  Seq<Integer> s30         = Seq.repeat(this.s0123, 3, 2);
-  Seq<Integer> sInfinite   = Seq.repeat(this.s0123);
-  Seq<Object>  sObjects    = Seq.repeat(Seq.of(null, this.s30, Optional.empty(), null));
+  Seq<Integer> s1230123012 = this.s0123.repeat(1, 10);
+  Seq<Integer> s30         = this.s0123.repeat(3, 2);
+  Seq<Integer> sInfinite   = this.s0123.repeat();
+  Seq<Object>  sObjects    = Seq.of(null, this.s30, Optional.empty(), null).repeat();
 
   @BeforeClass
   public static void setUpBeforeClass() throws Exception {
@@ -32,8 +32,10 @@ public class RepeatingSeqTest {
 
   @Test
   public final void testIsEmpty() {
-    assertTrue(Seq.repeat(Seq.empty()).isEmpty());
-    assertFalse(Seq.repeat(Seq.of(1, 2, 3)).isEmpty());
+    assertTrue(Seq.empty().repeat().isEmpty());
+    assertFalse(Seq.of(1, 2, 3).repeat().isEmpty());
+    assertFalse(this.s30.isEmpty());
+    assertFalse(this.sObjects.isEmpty());
   }
 
   @Test
@@ -121,9 +123,9 @@ public class RepeatingSeqTest {
     assertEquals(-1, this.s1230123012.lastIndexOf(4));
 
     // [2,3,0,1,2,3,0,1,*2*]
-    assertEquals(8, Seq.repeat(this.s0123, 2, 9).lastIndexOf(2));
+    assertEquals(8, this.s0123.repeat(2, 9).lastIndexOf(2));
     // [5,6,0,1,2,3,4,6,0,1,*2*,3]
-    assertEquals(11, Seq.repeat(Seq.range(0, 7), 5, 13).lastIndexOf(2));
+    assertEquals(11, Seq.range(0, 7).repeat(5, 13).lastIndexOf(2));
   }
 
   @Test

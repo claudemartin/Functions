@@ -8,7 +8,7 @@ import java.util.NoSuchElementException;
 
 /* UNDER CONSTRUCTION! */
 final class RepeatingSeq<E> extends AbstractSeq<E> {
-  final int    offset;
+  final long   offset;
   final long   length;
   final Seq<E> sequence;
 
@@ -16,7 +16,7 @@ final class RepeatingSeq<E> extends AbstractSeq<E> {
     this(sequence, 0, INFINITY);
   }
 
-  RepeatingSeq(final Seq<E> sequence, final int offset, final long length) {
+  RepeatingSeq(final Seq<E> sequence, final long offset, final long length) {
     requireNonNull(sequence, "sequence");
     if (offset < 0 || offset >= sequence.length())
       throw new IllegalArgumentException();
@@ -35,9 +35,9 @@ final class RepeatingSeq<E> extends AbstractSeq<E> {
 
   @Override
   public E get(final int index) {
-    if (index < 0 || index >= this.length)
+    if (index < 0 || index >= this.size())
       throw new IndexOutOfBoundsException();
-    return this.sequence.get((this.offset + index) % this.sequence.size());
+    return this.sequence.get((int) (this.offset + index) % this.sequence.size());
   }
 
   @Override
@@ -48,7 +48,8 @@ final class RepeatingSeq<E> extends AbstractSeq<E> {
     i = this.sequence.indexOf(o);
     if (i == -1)
       return i;
-    i = this.sequence.size() - this.offset + i;
+    // TODO : What if it's after Integer.MAX_VALUE ?
+    i = (int) (this.sequence.size() - this.offset + i);
     if (i >= this.length)
       return -1;
     return i;
@@ -73,7 +74,7 @@ final class RepeatingSeq<E> extends AbstractSeq<E> {
 
   @Override
   public Seq<E> tail() {
-    int newOffset = this.offset + 1;
+    long newOffset = this.offset + 1;
     if (newOffset == this.sequence.size())
       newOffset = 0;
     if (this.length == 1)
@@ -135,18 +136,18 @@ final class RepeatingSeq<E> extends AbstractSeq<E> {
   }
 
   @Override
-  public Seq<E> take(final int n) {
+  public Seq<E> take(final long n) {
     return new RepeatingSeq<>(this.sequence, this.offset, n);
   }
 
   @Override
-  public Seq<E> drop(final int n) {
+  public Seq<E> drop(final long n) {
     final long newLength = this.length - n;
     if (newLength == 0)
       return Seq.empty();
     if (newLength < 0)
       throw new IllegalArgumentException();
-    final int newOffset = (this.offset + n) % this.sequence.size();
+    final long newOffset = (this.offset + n) % this.sequence.size();
     return new RepeatingSeq<>(this.sequence, newOffset, newLength);
   }
 
