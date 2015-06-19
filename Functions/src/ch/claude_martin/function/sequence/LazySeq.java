@@ -64,7 +64,7 @@ public final class LazySeq<E> extends AbstractSeq<E> {
     if (len != -1)
       return len;
 
-    if (this.head() == NOTHING)
+    if (this.isEmpty())
       len = 0;
     else {
       len = this.tail().length();

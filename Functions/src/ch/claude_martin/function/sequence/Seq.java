@@ -94,6 +94,8 @@ public interface Seq<E> extends List<E> {
   }
 
   public static Seq<Integer> range(final int start, final int end) {
+    if (end < start)
+      throw new IllegalArgumentException();
     return iterate(start, (IntUnaryOperator) i -> {
       if (i == end)
         throw new RuntimeException();
@@ -126,6 +128,15 @@ public interface Seq<E> extends List<E> {
     if (sequence.isEmpty() || !sequence.isFinite())
       return sequence;
     return new RepeatingSeq<>(sequence);
+  }
+
+  public static <E> Seq<E> repeat(final Seq<E> sequence, final int offset, final long length) {
+    requireNonNull(sequence, "sequence");
+    if (sequence.isEmpty())
+      return sequence;
+    if (!sequence.isFinite())
+      return sequence.drop(offset);
+    return new RepeatingSeq<>(sequence, offset, length);
   }
 
   /** Collect elements of a finite stream to a sequence. */
@@ -342,9 +353,7 @@ public interface Seq<E> extends List<E> {
   public default boolean contains(final Object o) {
     if (this.isEmpty())
       return false;
-    if (this.head().equals(o))
-      return true;
-    return this.tail().contains(o);
+    return Objects.equals(this.head(), o) || this.tail().contains(o);
   }
 
 
@@ -373,15 +382,17 @@ public interface Seq<E> extends List<E> {
   @SuppressWarnings("unchecked")
   @Override
   public default <T> T[] toArray(final T[] a) {
+    if (this.length() > Integer.MAX_VALUE)
+      throw new OutOfMemoryError();
     if (a.length == this.size()) {
       Seq<E> l = this;
       for (int i = 0; i < a.length; i++) {
         a[i] = (T) l.head();
         l = l.tail();
       }
+      return a;
     }
     return this.toArray(Arrays.copyOf(a, this.size()));
-
   }
 
   @Override

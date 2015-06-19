@@ -34,7 +34,9 @@ public final class ArraySeq<E> extends AbstractSeq<E> {
 
   @Override
   public Iterator<E> iterator() {
-    return Arrays.asList(this.array).iterator();
+    if (this.offset == 0)
+      return Arrays.asList(this.array).iterator();
+    return super.iterator();
   }
 
   @SuppressWarnings({ "unchecked", "rawtypes" })
