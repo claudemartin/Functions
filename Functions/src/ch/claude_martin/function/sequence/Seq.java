@@ -4,6 +4,9 @@ import static java.util.Objects.requireNonNull;
 
 import java.util.*;
 import java.util.concurrent.Callable;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.*;
 import java.util.stream.Collector;
 
@@ -65,15 +68,60 @@ public interface Seq<E> extends List<E> {
     return result;
   }
 
-  public static <E> Seq<E> lazy(final Callable<E> callable) {
+  public static <E> Seq<E> generate(final Callable<E> callable) {
     return new LazySeq<>(callable);
+  }
+
+  public static <E> Seq<E> iterate(final E seed, final UnaryOperator<E> f) {
+    final AtomicReference<E> i = new AtomicReference<>(seed);
+    return generate(() -> {
+      return i.getAndUpdate(f);
+    });
+  }
+
+  public static Seq<Integer> iterate(final int seed, final IntUnaryOperator f) {
+    final AtomicInteger i = new AtomicInteger(seed);
+    return generate(() -> {
+      return i.getAndUpdate(f);
+    });
+  }
+
+  public static Seq<Long> iterate(final long seed, final LongUnaryOperator f) {
+    final AtomicLong i = new AtomicLong(seed);
+    return generate(() -> {
+      return i.getAndUpdate(f);
+    });
+  }
+
+  public static Seq<Integer> range(final int start, final int end) {
+    return iterate(start, (IntUnaryOperator) i -> {
+      if (i == end)
+        throw new RuntimeException();
+      return 1 + i;
+    });
+  }
+
+  public static Seq<Integer> rangeClosed(final int first, final int last) {
+    return range(first, last + 1);
+  }
+
+  public static Seq<Long> range(final long start, final long end) {
+    return iterate(start, (LongUnaryOperator) i -> {
+      if (i == end)
+        throw new RuntimeException();
+      return 1 + i;
+    });
+  }
+
+  public static Seq<Long> rangeClosed(final long first, final long last) {
+    return range(first, last + 1);
   }
 
   public static <E> Seq<E> seq(final E head, final Seq<E> tail) {
     return new LinkedSeq<>(head, tail);
   }
 
-  public static <E> Seq<E> seq(final Seq<E> sequence) {
+  public static <E> Seq<E> repeat(final Seq<E> sequence) {
     requireNonNull(sequence, "sequence");
     if (sequence.isEmpty() || !sequence.isFinite())
       return sequence;
@@ -104,8 +152,10 @@ public interface Seq<E> extends List<E> {
   /** returns the list without its {@link #last last item}. */
   public abstract AbstractSeq<E> init();
 
+  /** length of the sequence. */
   public abstract long length();
 
+  /** Returns true if the number of elements is known and finite. */
   public default boolean isFinite() {
     return this.length() != INFINITY;
   }
@@ -148,20 +198,29 @@ public interface Seq<E> extends List<E> {
   public default Seq<E> append(final Seq<? extends E> list) {
     requireNonNull(list, "list");
 
-    if (list.isEmpty())
+    if (list.isEmpty() || !this.isFinite())
       return this;
 
-    Seq<E> result = (Seq<E>) list;
+    // final Seq<E> result = (Seq<E>) list;
     if (this.isEmpty())
-      return result;
+      return (Seq<E>) list;
 
     if (this.length() == 1)
-      return new LinkedSeq<>(this.head(), result);
+      return new LinkedSeq<>(this.head(), (Seq<E>) list);
+    final AtomicReference<Pair<Seq<E>, Boolean>> ref = new AtomicReference<>(Pair.of(this, true));
 
-    final Object[] elements = this.toArray();
-    for (int i = elements.length - 1; i >= 0; i--)
-      result = new LinkedSeq<>((E) elements[i], result);
-    return result;
+    return new LazySeq<>(() -> {
+      return ref.getAndUpdate(p -> {
+        final Seq<E> tail = p._1().tail();
+        final Boolean isFirst = p._2();
+        if (tail.isEmpty()) {
+          if (isFirst)
+            return Pair.of((Seq<E>)list, false);
+          return Pair.of(tail, false);
+        }
+        return Pair.of(tail, isFirst);
+      })._1().head();
+    });
   }
 
   @Override
