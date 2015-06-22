@@ -124,7 +124,7 @@ public class RepeatingSeqTest {
 
     // [2,3,0,1,2,3,0,1,*2*]
     assertEquals(8, this.s0123.repeat(2, 9).lastIndexOf(2));
-    // [5,6,0,1,2,3,4,6,0,1,*2*,3]
+    // [5,6,0,1,2,3,4,5,6,0,1,*2*,3]
     assertEquals(11, Seq.range(0, 7).repeat(5, 13).lastIndexOf(2));
   }
 

@@ -51,11 +51,19 @@ public interface Seq<E> extends List<E> {
   @SafeVarargs
   public static <E> Seq<E> of(final E... elements) {
     requireNonNull(elements, "elements");
+    if (elements.length == 0)
+      return empty();
+    requireNonNull(elements, "elements");
     return new ArraySeq<>(elements.clone(), 0);
   }
 
   public static <E> Seq<E> ofCollection(final Collection<E> elements) {
     requireNonNull(elements, "elements");
+    if (elements.isEmpty())
+      return empty();
+    if (elements instanceof Seq)
+      return (Seq<E>) elements;
+    // collection could be mutable, so a copy must be created.
     final java.util.List<E> list;
     if (elements instanceof java.util.List)
       list = (java.util.List<E>) elements;
@@ -68,8 +76,19 @@ public interface Seq<E> extends List<E> {
     return result;
   }
 
+  @SuppressWarnings("unchecked")
+  public static <T, A extends T, B extends T> Seq<T> concat(final Seq<A> s1, final Seq<B> s2) {
+    requireNonNull(s1, "s1");
+    requireNonNull(s2, "s2");
+    return ((Seq<T>) s1).append(s2);
+  }
+
   public static <E> Seq<E> generate(final Callable<E> callable) {
     return new LazySeq<>(callable);
+  }
+
+  public static <E> Seq<E> generate(final Predicate<Consumer<E>> generator) {
+    return new LazySeq<>(generator);
   }
 
   public static <E> Seq<E> iterate(final E seed, final UnaryOperator<E> f) {
@@ -119,11 +138,13 @@ public interface Seq<E> extends List<E> {
     return range(first, last + 1);
   }
 
-  public static <E> Seq<E> seq(final E head, final Seq<E> tail) {
-    return new LinkedSeq<>(head, tail);
+  @SuppressWarnings("unchecked")
+  public static <E> Seq<E> seq(final E head, final Seq<? extends E> tail) {
+    return new LinkedSeq<>(head, (Seq<E>) tail);
   }
 
-  /** Collect elements of a finite stream to a sequence. */
+  /** Collect elements of a finite stream to a sequence. The collector will create a linked sequence
+   * of all elements. */
   public static <T> Collector<T, ?, Seq<T>> toSeq() {
     final Supplier<List<T>> supplier = ArrayList::new;
     final BiConsumer<List<T>, T> accumulator = (l, t) -> l.add(t);
@@ -145,7 +166,7 @@ public interface Seq<E> extends List<E> {
   public abstract E last();
 
   /** returns the list without its {@link #last last item}. */
-  public abstract AbstractSeq<E> init();
+  public abstract Seq<E> init();
 
   /** length of the sequence. */
   public abstract long length();
@@ -210,7 +231,7 @@ public interface Seq<E> extends List<E> {
         final Boolean isFirst = p._2();
         if (tail.isEmpty()) {
           if (isFirst)
-            return Pair.of((Seq<E>)list, false);
+            return Pair.of((Seq<E>) list, false);
           return Pair.of(tail, false);
         }
         return Pair.of(tail, isFirst);
@@ -220,7 +241,7 @@ public interface Seq<E> extends List<E> {
 
   @Override
   public default E get(final int index) {
-    if (index < 0 || index >= this.length())
+    if (index < 0 || this.isEmpty())
       throw new IndexOutOfBoundsException();
     if (index == 0)
       return this.head();
@@ -228,19 +249,28 @@ public interface Seq<E> extends List<E> {
   }
 
   public default Seq<E> take(final long n) {
-    if (n < 0 || n > this.length())
-      throw new IllegalArgumentException();
-    if (n == 0)
+    if (this.isEmpty() || n <= 0)
       return Seq.empty();
-    if (n == this.length())
+    if (n == INFINITY)
       return this;
-    return new LinkedSeq<>(this.head(), this.tail().take(n - 1));
+    if (this instanceof LinkedSeq || this instanceof ArraySeq)
+      // These are finite and non-lazy
+      if (n >= this.length())
+        return this;
+
+    final AtomicReference<Pair<Long, Seq<E>>> i = new AtomicReference<>(Pair.of(0L, Seq.this));
+    return generate(() -> {
+      final Pair<Long, Seq<E>> p = i.getAndUpdate(o -> Pair.of(o._1() + 1L, o._2().tail()));
+      if (p._1() == n)
+        throw new NoSuchElementException();
+      return p._2().head();
+    });
   }
 
   public default Seq<E> drop(final long n) {
-    if (n < 0 || n > this.length())
-      throw new IllegalArgumentException();
-    if (n == 0)
+    if (n > this.length())
+      return Seq.empty();
+    if (n <= 0)
       return this;
     if (n == 1)
       return this.tail();
@@ -254,21 +284,26 @@ public interface Seq<E> extends List<E> {
   }
 
   public default Seq<E> repeat(final int offset, final long length) {
-    if (this.isEmpty())
-      return this;
+    if (length == 0 || this.isEmpty())
+      return Seq.empty();
     if (!this.isFinite())
       return this.drop(offset).take(length);
     return new RepeatingSeq<>(this, offset, length);
   }
 
   public default Seq<E> filter(final Predicate<? super E> predicate) {
+    requireNonNull(predicate, "predicate");
     if (this.isEmpty())
-      return this;
-    if (!this.isFinite())
-      throw new RuntimeException(); // infinite sequences must override!
-    if (predicate.test(this.head()))
-      return new LinkedSeq<>(this.head(), this.tail().filter(predicate));
-    return this.tail().filter(predicate);
+      return Seq.empty();
+    final AtomicReference<Seq<E>> i = new AtomicReference<>(Seq.seq(null, Seq.this));
+    return generate(() -> {
+      return i.updateAndGet(s -> {
+        do
+          s = s.tail();
+        while (!predicate.test(s.head()));
+        return s;
+      }).head();
+    });
   }
 
   /** The partition function takes a predicate a list and returns the pair of lists of elements which
@@ -285,7 +320,19 @@ public interface Seq<E> extends List<E> {
 
   /** Removes duplicate elements from a sequence. */
   public default Seq<E> distinct() {
-    return this.stream().distinct().collect(Seq.toSeq());
+    if (isEmpty())
+      return empty();
+    final Set<E> set = new HashSet<>();
+    final AtomicReference<Seq<E>> ref = new AtomicReference<>(//
+        Seq.seq(null, Seq.this));
+    return generate(() -> {
+      return ref.updateAndGet(s -> {
+        do
+          s = s.tail();
+        while (!set.contains(s.head()));
+        return s;
+      }).head();
+    });
   }
 
   public default boolean all(final Predicate<E> predicate) {
@@ -306,7 +353,8 @@ public interface Seq<E> extends List<E> {
     requireNonNull(mapper, "mapper");
     if (this.isEmpty())
       return Seq.empty();
-    return new LinkedSeq<>(mapper.apply(this.head()), this.tail().map(mapper));
+    final AtomicReference<Seq<E>> i = new AtomicReference<>(Seq.this);
+    return generate(() -> mapper.apply(i.getAndUpdate(s -> s.tail()).head()));
   }
 
   public default Seq<E> sorted() {
@@ -319,8 +367,12 @@ public interface Seq<E> extends List<E> {
 
   @Override
   public default Object[] toArray() {
-    if (this.length() > Integer.MAX_VALUE)
+    try {
+      if (!this.isFinite() || this.length() > Integer.MAX_VALUE - 8)
+        throw new OutOfMemoryError();
+    } catch (final StackOverflowError e) {
       throw new OutOfMemoryError();
+    }
     final Object[] result = new Object[this.size()];
     int i = 0;
     for (Seq<E> e = this; !e.isEmpty(); e = e.tail())
@@ -353,7 +405,6 @@ public interface Seq<E> extends List<E> {
       return false;
     return Objects.equals(this.head(), o) || this.tail().contains(o);
   }
-
 
   @Override
   public default Iterator<E> iterator() {

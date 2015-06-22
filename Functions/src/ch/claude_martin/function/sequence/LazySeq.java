@@ -4,20 +4,34 @@ import static java.util.Objects.requireNonNull;
 
 import java.util.NoSuchElementException;
 import java.util.concurrent.Callable;
+import java.util.function.Consumer;
+import java.util.function.Predicate;
 
+/** Returns elements until any exception is thrown. */
 public final class LazySeq<E> extends AbstractSeq<E> {
 
   private final static Object UNINITIALIZED = new Object();
-  private final Callable<E>   callable;
+  private final Predicate<Consumer<E>> generator;
   @SuppressWarnings("unchecked")
   private volatile E          _head         = (E) UNINITIALIZED;
   private volatile Seq<E>     _tail         = null;
   private volatile long       _length       = -1;
 
+  LazySeq(final Predicate<Consumer<E>> generator) {
+    requireNonNull(generator, "generator");
+    this.generator = generator;
+  }
   LazySeq(final Callable<E> callable) {
     super();
     requireNonNull(callable, "callable");
-    this.callable = callable;
+    this.generator = c -> {
+      try {
+        c.accept(callable.call());
+        return true;
+      } catch (final Throwable e) {
+        return false;
+      }
+    };
   }
 
   @SuppressWarnings("unchecked")
@@ -27,23 +41,27 @@ public final class LazySeq<E> extends AbstractSeq<E> {
     synchronized (this) {
       if (this._head != UNINITIALIZED)
         return;
-      try {
-        this._head = this.callable.call();
-        this._tail = new LazySeq<>(this.callable);
-      } catch (final Exception e) {
+      final boolean exisits = this.generator.test(x -> this._head = x);
+      if (!exisits) {
         // This becomes am empty sequence:
         this._head = (E) NOTHING;
         this._tail = null;
         this._length = 0;
         assert this.isEmpty();
+        return;
       }
+      this._tail = new LazySeq<>(this.generator);
     }
   }
 
   @Override
   public E head() {
-    this.lazyHeadTail();
-    final E head = this._head;
+    E head = this._head;
+    if (head == UNINITIALIZED) {
+      this.lazyHeadTail();
+      head = this._head;
+    }
+
     if (head == NOTHING)
       throw new NoSuchElementException();
     return head;
@@ -51,8 +69,13 @@ public final class LazySeq<E> extends AbstractSeq<E> {
 
   @Override
   public Seq<E> tail() {
-    this.lazyHeadTail();
-    final Seq<E> tail = this._tail;
+    E head = this._head;
+    Seq<E> tail = this._tail;
+    if (head == UNINITIALIZED || tail == null) {
+      this.lazyHeadTail();
+      head = this._head;
+      tail = this._tail;
+    }
     if (tail == null)
       throw new NoSuchElementException();
     return tail;
@@ -77,7 +100,7 @@ public final class LazySeq<E> extends AbstractSeq<E> {
   @Override
   public boolean isEmpty() {
     E head = this._head;
-    if (this._head == UNINITIALIZED) {
+    if (head == UNINITIALIZED) {
       this.lazyHeadTail();
       head = this._head;
     }
