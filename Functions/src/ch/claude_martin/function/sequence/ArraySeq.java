@@ -3,10 +3,13 @@ package ch.claude_martin.function.sequence;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Iterator;
+import java.util.Spliterator;
+import java.util.stream.Stream;
 
 public final class ArraySeq<E> extends AbstractSeq<E> {
   private final E[] array;
   private final int offset;
+  private ArraySeq<E> tail = null;
 
   ArraySeq(final E[] array, final int offset) {
     super();
@@ -24,12 +27,21 @@ public final class ArraySeq<E> extends AbstractSeq<E> {
     final int newOffset = this.offset + 1;
     if (newOffset == this.array.length)
       return Seq.empty();
-    return new ArraySeq<>(this.array, newOffset);
+    if (this.tail == null)
+      this.tail = new ArraySeq<>(this.array, newOffset);
+    return this.tail;
   }
 
   @Override
   public long length() {
     return this.array.length - this.offset;
+  }
+
+  @Override
+  public E get(final int index) {
+    if (index < 0 || index >= this.array.length)
+      throw new IndexOutOfBoundsException();
+    return this.array[index];
   }
 
   @Override
@@ -55,4 +67,26 @@ public final class ArraySeq<E> extends AbstractSeq<E> {
     return new ArraySeq<>(copy, 0);
   }
 
+  @Override
+  public Object[] toArray() {
+    return Arrays.copyOf(this.array, this.array.length, Object[].class);
+  }
+
+  @Override
+  public <T> T[] toArray(T[] a) {
+    if(a.length != this.array.length)
+      a = Arrays.copyOf(a, this.array.length);
+    System.arraycopy(this.array, 0, a, 0, a.length);
+    return a;
+  }
+
+  @Override
+  public Stream<E> stream() {
+    return Arrays.stream(this.array);
+  }
+
+  @Override
+  public Spliterator<E> spliterator() {
+    return Arrays.spliterator(this.array);
+  }
 }
